@@ -16,8 +16,8 @@ of the VoxCeleb data from youtube due to this new limitation.
 The first command below will iterate over the files in the dev set and download all the appropriate audio files. The
 second command will do the same for the test set. 
 ```
-python speakerid.py voxceleb-download --url-directory data/vox1_dev_txt --audio-directory data/audio --output-dir data/spectrograms
-python speakerid.py voxceleb-download --url-directory data/vox1_test_txt --audio-directory data/audio --output-dir data/spectrograms
+python voxcelebdownloader.py --url-directory data/vox1_dev_txt --audio-directory data/audio --output-dir data/spectrograms
+python voxcelebdownloader.py --url-directory data/vox1_test_txt --audio-directory data/audio --output-dir data/spectrograms
 ```
 
 Downloading the dataset requires [youtube-dl](https://youtube-dl.org/) in order to download the audio data from the 

@@ -4,6 +4,11 @@ import librosa
 import librosa.display
 import numpy as np
 import skimage.io
+import glob
+import torch
+from torchvision import transforms
+from torch.utils.data import dataset, sampler, dataloader
+from PIL import Image
 
 
 @dataclass
@@ -57,10 +62,6 @@ class VoxCelebUtterance:
 
         return cls(**inst)
 
-def get_first_if_tuple(obj):
-    if type(obj) is tuple:
-        return obj[0]
-    return obj
 
 @dataclass
 class VoxCelebUtterances:
@@ -90,11 +91,13 @@ class VoxCelebUtterances:
 
         return cls(**inst)
 
+
 def image_to_uint8(img):
     img_range = img.max() - img.min()
     if img_range == 0:
         return np.full_like(img, 127, dtype=np.uint8)
     return (255 * (img - img.min()) / img_range).astype(np.uint8)
+
 
 def generate_voxceleb_spectrograms(celeb_utterances: list[VoxCelebUtterances], audio_file: Path, output_dir: Path) -> bool:
     sampling_rate = 16000
@@ -137,3 +140,95 @@ def generate_voxceleb_spectrograms(celeb_utterances: list[VoxCelebUtterances], a
                 skimage.io.imsave(spectrogram_output_dir / f'{voxceleb_utterance.utterance_name}_{spectrogram_idx}.png', image_to_uint8(mel_db_spectrogram))
 
     return success
+
+
+def get_voxceleb_stats():
+    pass
+
+
+class VoxCelebDataset(dataset.Dataset):
+    def __init__(self, voxceleb_dir: list[str], spectrograms_dir: Path, num_support: int, num_query: int, seed: int=None) -> None:
+        super().__init__()
+
+        self._rng = np.random.default_rng(seed)
+        self.celebs = []
+        self.celeb_spectrograms = {}
+        for celeb_dir in voxceleb_dir.iterdir():
+            celeb_utterances = spectrograms_dir / celeb_dir.stem
+            celeb_spectrograms = glob.glob(str(celeb_utterances / '*' / '*.png'))
+            if celeb_spectrograms:
+                if len(celeb_spectrograms) >= (num_support + num_query):
+                    self.celebs += [celeb_dir.name]
+                    self.celeb_spectrograms[celeb_dir.name] = celeb_spectrograms
+                else:
+                    print(f'Dropping celeb {celeb_dir.name} due to only having {len(celeb_spectrograms)} spectrograms ({num_support=}, {num_query=}, required={num_support + num_query})')
+        self._rng.shuffle(self.celebs)
+
+        self._num_support = num_support
+        self._num_query = num_query
+
+        self._transform = transforms.Compose([
+            transforms.PILToTensor(),
+            transforms.Lambda(lambda x: x.type(torch.FloatTensor)),
+            transforms.Resize((64, 64))
+        ])
+
+    def __getitem__(self, celeb_idxs):
+        spectrograms_support, spectrograms_query = [], []
+        labels_support, labels_query = [], []
+
+        for label, celeb_idx in enumerate(celeb_idxs):
+            celeb_spectrograms = self.celeb_spectrograms[self.celebs[celeb_idx]]
+            spectrogram_idxs = self._rng.choice(len(celeb_spectrograms), size=(self._num_query + self._num_support), replace=False)
+            spectrograms = [self._transform(Image.open(celeb_spectrograms[spectrogram_idx])) for spectrogram_idx in spectrogram_idxs]
+            spectrograms_support += spectrograms[:self._num_support]
+            spectrograms_query += spectrograms[self._num_support:]
+            labels_support += [label] * self._num_support
+            labels_query += [label] * self._num_query
+
+        spectrograms_support = torch.stack(spectrograms_support)
+        labels_support = torch.tensor(labels_support)
+        spectrograms_query = torch.stack(spectrograms_query)
+        labels_query = torch.tensor(labels_query)
+        return spectrograms_support, labels_support, spectrograms_query, labels_query
+
+
+class VoxCelebSampler(sampler.Sampler):
+    def __init__(self, num_celebs, num_way, num_tasks, seed=None) -> None:
+        super().__init__(None)
+        self._num_celebs = num_celebs
+        self._num_way = num_way
+        self._num_tasks = num_tasks
+        self._rng = np.random.default_rng(seed)
+
+    def __iter__(self):
+        return (
+            self._rng.choice(self._num_celebs, size=self._num_way, replace=False) for _ in range(self._num_tasks)
+        )
+    
+    def __len__(self):
+        return self._num_tasks
+
+
+def get_voxceleb_dataloader(
+    batch_size: int, 
+    num_way: int, 
+    num_support: int, 
+    num_query: int, 
+    num_tasks_per_epoch: int,
+    voxceleb_dir: str,
+    spectrograms_dir: str,
+    seed: int=None
+):
+    voxceleb_dir_path = Path(voxceleb_dir) / 'txt'
+    spectrograms_dir_path = Path(spectrograms_dir)
+    voxceleb_dataset = VoxCelebDataset(voxceleb_dir_path, spectrograms_dir_path, num_support, num_query, seed=seed) 
+    return dataloader.DataLoader(
+        dataset=voxceleb_dataset,
+        batch_size=batch_size,
+        sampler=VoxCelebSampler(len(voxceleb_dataset.celebs), num_way, num_tasks_per_epoch),
+        num_workers=8,
+        collate_fn=lambda x: x,
+        pin_memory=False,
+        drop_last=True
+    )

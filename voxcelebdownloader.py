@@ -2,6 +2,7 @@ import os
 import shutil
 import ray
 import timeit
+import argparse
 from pathlib import Path
 
 import voxcelebdataset
@@ -41,6 +42,7 @@ def voxceleb_download(url_directory: Path, audio_directory: Path, output_directo
     results = ray.get(download_tasks)
     print(f'Finished voxceleb download and processing, succeeded on {sum(results)}/{len(download_tasks)} audio files ({sum(results)/len(download_tasks)})')
 
+
 @ray.remote
 def process_voxceleb_utterances(celebs_utterances: list[voxcelebdataset.VoxCelebUtterances], audio_dir: Path, output_dir: Path, audio_format: str='wav', keep_audio=False) -> None:
     # before doing the download (which can take a while), check if we already have it
@@ -62,6 +64,7 @@ def process_voxceleb_utterances(celebs_utterances: list[voxcelebdataset.VoxCeleb
     print(f'Result of processing {len(celebs_utterances)} celeb for {url_md5=} --> {already_downloaded=}, {downloaded=}, {success=}')
     return success
 
+
 def download_wav_for_youtube_md5(url_md5, audio_format='wav', output_dir=None) -> bool:
     start_time = timeit.default_timer()
     file_size = 0
@@ -74,3 +77,40 @@ def download_wav_for_youtube_md5(url_md5, audio_format='wav', output_dir=None) -
     time = timeit.default_timer() - start_time
     print(f'Download of {file_name} completed: {ret=}, {file_size=}, {time=}')
     return ret == 0
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser('Downloads the voxceleb data')
+    parser.add_argument(
+        '--url-directory',
+        type=str,
+        required=True, 
+        help='Voxceleb "URLs and timestamps" directory'
+    )
+    parser.add_argument(
+        '--audio-directory',
+        type=str,
+        required=True, 
+        help='Directory to store downloaded audio files (temporary directory if --keep-audio isn\'t passed)'
+    )
+    parser.add_argument(
+        '--output-directory',
+        type=str,
+        required=True, 
+        help='Directory to store labeled spectrogram images from the utterances'
+    )
+    parser.add_argument(
+        '--keep-audio',
+        required=False,
+        action='store_true',
+        help='Full audio files will be kept after spectrogram images have been created'
+    )
+    parser.add_argument(
+        '--force-post-process',
+        required=False,
+        action='store_true',
+        help='Forces the post processing to occur, even if existing data is already found'
+    )
+
+    args = parser.parse_args()
+    voxceleb_download(Path(args.url_directory), Path(args.audio_directory), Path(args.output_directory), args.force_post_process, args.keep_audio)

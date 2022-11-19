@@ -134,4 +134,4 @@ dmypy.json
 data
 data_debug
 .vscode
-
+logs
