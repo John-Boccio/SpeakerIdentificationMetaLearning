@@ -28,3 +28,6 @@ See `speakerid.py` and `voxcelebdownloader.py` to see how this was done. Unfortu
 of the `*.part` files in the directory where the download command is ran from so they will have to be cleaned up
 manually via `rm *.part` after the download has completed.
 
+
+## Protonet
+

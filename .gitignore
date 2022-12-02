@@ -135,3 +135,14 @@ data
 data_debug
 .vscode
 logs
+.DS_Store
+copy_code.sh
+data.zip
+
+# latex
+report/main.aux
+report/main.fdb_latexmk
+report/main.fls
+report/main.log
+report/main.out
+report/main.synctex.gz

@@ -6,62 +6,19 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.utils import tensorboard
+import torchsummary
 
 import voxcelebdataset
+import voxcelebnetwork
 import util
 
-NUM_INPUT_CHANNELS = 1
-NUM_HIDDEN_CHANNELS = 64
-KERNEL_SIZE = 3
-NUM_CONV_LAYERS = 4
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-SUMMARY_INTERVAL = 10
-SAVE_INTERVAL = 100
-PRINT_INTERVAL = 10
-VAL_INTERVAL = PRINT_INTERVAL * 5
-NUM_TEST_TASKS = 600
-
-
-class VoxCelebProtoNetNetwork(nn.Module):
-    def __init__(self):
-        super().__init__()
-        layers = []
-        in_channels = NUM_INPUT_CHANNELS
-        for _ in range(NUM_CONV_LAYERS):
-            layers.append(
-                nn.Conv2d(
-                    in_channels,
-                    NUM_HIDDEN_CHANNELS,
-                    (KERNEL_SIZE, KERNEL_SIZE),
-                    padding='same'
-                )
-            )
-            layers.append(nn.BatchNorm2d(NUM_HIDDEN_CHANNELS))
-            layers.append(nn.ReLU())
-            layers.append(nn.MaxPool2d(2))
-            in_channels = NUM_HIDDEN_CHANNELS
-        layers.append(nn.Flatten())
-        self._layers = nn.Sequential(*layers)
-        self.to(DEVICE)
-
-    def forward(self, images):
-        """Computes the latent representation of a batch of images.
-
-        Args:
-            images (Tensor): batch of Omniglot images
-                shape (num_images, channels, height, width)
-
-        Returns:
-            a Tensor containing a batch of latent representations
-                shape (num_images, latents)
-        """
-        return self._layers(images)
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class ProtoNet:
     """Trains and assesses a prototypical network."""
 
-    def __init__(self, learning_rate, log_dir):
+    def __init__(self, learning_rate, log_dir, num_test_tasks, test_interval, print_interval):
         """Inits ProtoNet.
 
         Args:
@@ -69,7 +26,12 @@ class ProtoNet:
             log_dir (str): path to logging directory
         """
 
-        self._network = VoxCelebProtoNetNetwork()
+        self._network = voxcelebnetwork.VoxCelebNetwork()
+        if torch.cuda.device_count() > 1:
+            print(f'Using {torch.cuda.device_count()} GPUs')
+            self._network = nn.DataParallel(self._network)
+        self._network.to(DEVICE)
+
         self._optimizer = torch.optim.Adam(
             self._network.parameters(),
             lr=learning_rate
@@ -78,6 +40,9 @@ class ProtoNet:
         os.makedirs(self._log_dir, exist_ok=True)
 
         self._start_train_step = 0
+        self._num_test_tasks = num_test_tasks
+        self._test_interval = test_interval
+        self._print_interval = print_interval
 
     def _step(self, task_batch):
         """Computes ProtoNet mean loss (and accuracy) on a batch of tasks.
@@ -149,7 +114,7 @@ class ProtoNet:
             loss.backward()
             self._optimizer.step()
 
-            if i_step % PRINT_INTERVAL == 0:
+            if i_step % self._print_interval == 0:
                 print(
                     f'Iteration {i_step}: '
                     f'loss: {loss.item():.3f}, '
@@ -168,7 +133,7 @@ class ProtoNet:
                     i_step
                 )
 
-            if i_step % VAL_INTERVAL == 0:
+            if i_step % self._test_interval == 0:
                 with torch.no_grad():
                     losses, accuracies_support, accuracies_query = [], [], []
                     for val_task_batch in dataloader_val:
@@ -199,7 +164,6 @@ class ProtoNet:
                     i_step
                 )
 
-            if i_step % SAVE_INTERVAL == 0:
                 self._save(i_step)
 
     def test(self, dataloader_test):
@@ -213,9 +177,9 @@ class ProtoNet:
             accuracies.append(self._step(task_batch)[2])
         mean = np.mean(accuracies)
         std = np.std(accuracies)
-        mean_95_confidence_interval = 1.96 * std / np.sqrt(NUM_TEST_TASKS)
+        mean_95_confidence_interval = 1.96 * std / np.sqrt(self._num_test_tasks)
         print(
-            f'Accuracy over {NUM_TEST_TASKS} test tasks: '
+            f'Accuracy over {self._num_test_tasks} test tasks: '
             f'mean {mean:.3f}, '
             f'95% confidence interval {mean_95_confidence_interval:.3f}'
         )
@@ -263,9 +227,11 @@ def main(args):
     if log_dir is None:
         log_dir = f'./logs/voxceleb/protonet.way:{args.num_way}.support:{args.num_support}.query:{args.num_query}.lr:{args.learning_rate}.batch_size:{args.batch_size}'  # pylint: disable=line-too-long
     print(f'log_dir: {log_dir}')
+    print(f'Device: {DEVICE}')
     writer = tensorboard.SummaryWriter(log_dir=log_dir)
 
-    protonet = ProtoNet(args.learning_rate, log_dir)
+    protonet = ProtoNet(args.learning_rate, log_dir, args.test_tasks, args.test_interval, args.print_interval)
+    torchsummary.summary(protonet._network, (1, 256, 301), batch_size=args.num_way * (args.num_support + args.num_query), device=DEVICE.type)
 
     if args.checkpoint_step > -1:
         protonet.load(args.checkpoint_step)
@@ -281,7 +247,7 @@ def main(args):
             f'num_support={args.num_support}, '
             f'num_query={args.num_query}'
         )
-        dataloader_train = voxcelebdataset.get_voxceleb_dataloader(
+        dataloader_train = voxcelebdataset.get_voxceleb_task_dataloader(
             args.batch_size,
             args.num_way,
             args.num_support,
@@ -290,7 +256,7 @@ def main(args):
             args.train_url_directory,
             args.spectrogram_directory,
         )
-        dataloader_val = voxcelebdataset.get_voxceleb_dataloader(
+        dataloader_val = voxcelebdataset.get_voxceleb_task_dataloader(
             args.batch_size,
             args.num_way,
             args.num_support,
@@ -311,13 +277,14 @@ def main(args):
             f'num_support={args.num_support}, '
             f'num_query={args.num_query}'
         )
-        dataloader_test = voxcelebdataset.get_omniglot_dataloader(
-            'test',
-            1,
+        dataloader_test = voxcelebdataset.get_voxceleb_task_dataloader(
+            args.batch_size,
             args.num_way,
             args.num_support,
             args.num_query,
-            NUM_TEST_TASKS
+            args.test_tasks,
+            args.test_url_directory,
+            args.spectrogram_directory,
         )
         protonet.test(dataloader_test)
 
@@ -349,6 +316,12 @@ if __name__ == '__main__':
                         help='Voxceleb "URLs and timestamps" directory for the test data')
     parser.add_argument('--spectrogram_directory', type=str, required=True, 
                         help='Directory where the spectrograms are stored of each celebrities utterances')
+    parser.add_argument('--test_interval', type=int, required=False, default=50,
+                        help='Specify how often to test the model during training (default 50)')
+    parser.add_argument('--print_interval', type=int, required=False, default=10,
+                        help='Specify how often to test the model during training (default 10)')
+    parser.add_argument('--test_tasks', type=int, required=False, default=600,
+                        help='Number of test tasks to run when testing (default 600)')
 
     main_args = parser.parse_args()
     main(main_args)
