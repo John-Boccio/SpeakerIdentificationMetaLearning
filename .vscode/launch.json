@@ -41,32 +41,6 @@
             ]
         },
         {
-            "name": "Python: maml",
-            "type": "python",
-            "request": "launch",
-            "program": "maml.py",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "PYTHONPATH": "${cwd}",
-            },
-            "args": [
-                "--log_dir", "logs",
-                "--learning_rate", "0.001",
-                "--batch_size", "16",
-                "--num_epochs", "5000",
-                "--train_url_directory", "data/vox1_dev_txt",
-                "--test_url_directory", "data/vox1_test_txt",
-                "--spectrogram_directory", "data/spectrograms",
-                "--test_interval", "50",
-                "--print_interval", "10",
-                "--test_count", "5000",
-                // "--checkpoint_step", "4000"
-                // "--test"
-            ]
-        },
-        {
             "name": "Python: mae",
             "type": "python",
             "request": "launch",
