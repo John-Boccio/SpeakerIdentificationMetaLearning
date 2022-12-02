@@ -1,0 +1,97 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: protonet",
+            "type": "python",
+            "request": "launch",
+            "program": "protonet.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${cwd}",
+            },
+            "args": [
+                "--log_dir", "logs",
+                "--num_way", "5",
+                "--num_support", "5",
+                "--num_query", "15",
+                "--learning_rate", "0.001",
+                "--batch_size", "16",
+                "--num_train_iterations", "5000",
+                "--train_url_directory", "data/vox1_dev_txt",
+                "--test_url_directory", "data/vox1_test_txt",
+                "--spectrogram_directory", "data/spectrograms",
+                "--test_interval", "50",
+                "--print_interval", "10",
+                // "--checkpoint_step", "4000"
+                // "--test'
+            ]
+        },
+        {
+            "name": "Python: maml",
+            "type": "python",
+            "request": "launch",
+            "program": "maml.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${cwd}",
+            },
+            "args": [
+                "--log_dir", "logs",
+                "--learning_rate", "0.001",
+                "--batch_size", "16",
+                "--num_epochs", "5000",
+                "--train_url_directory", "data/vox1_dev_txt",
+                "--test_url_directory", "data/vox1_test_txt",
+                "--spectrogram_directory", "data/spectrograms",
+                "--test_interval", "50",
+                "--print_interval", "10",
+                "--test_count", "5000",
+                // "--checkpoint_step", "4000"
+                // "--test"
+            ]
+        },
+        {
+            "name": "Python: mae",
+            "type": "python",
+            "request": "launch",
+            "program": "mae.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${cwd}",
+            },
+            "args": [
+                // "--log_dir", "logs/voxceleb/mae...",
+                "--learning_rate", "0.001",
+                "--mask", "boxes",
+                "--mask_ratio", "0.75",
+                "--batch_size", "8",
+                "--num_epochs", "30",
+                "--train_url_directory", "data/vox1_dev_txt",
+                "--test_url_directory", "data/vox1_test_txt",
+                "--spectrogram_directory", "data/spectrograms",
+                "--test_interval", "50",
+                "--print_interval", "10",
+                // "--checkpoint_step", "4000"
+                // "--test'
+            ]
+        },
+    ]
+}
