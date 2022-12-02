@@ -1,0 +1,124 @@
+\documentclass{article}
+\usepackage[final]{nips_2017}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{graphicx}
+\title{Few-Shot Speaker Identification Using Meta-Learning}
+
+\author{
+  John Boccio
+  Department of Electrical Engineering\\
+  Stanford University\\
+  \texttt{jboccio@stanford.edu} \\
+  %% examples of more authors
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \AND
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Speaker identification refers to the task of identifying which speaker is talking from a previously given set of 
+speakers. A similar research area is speaker verification - given a single speaker, identify when that speaker is 
+talking. 
+
+\end{abstract}
+
+\section{Introduction}	
+Explain the problem and why it is important. Discuss your motivation for pursuing this
+problem. Give some background if necessary. Clearly state what the input and output
+is. Be very explicit: “The input to our algorithm is an {image, amplitude, patient age,
+rainfall measurements, grayscale video, etc.}. We then use a {SVM, neural network, linear
+regression, etc.} to output a predicted {age, stock price, cancer type, music genre, etc.}.”
+This is very important since different teams have different inputs/outputs spanning different
+application domains. Being explicit about this makes it easier for readers. If you are using
+your project for multiple classes, add a paragraph explaining which components of the
+project were used for each class.
+
+\section{Related work}
+You should find existing papers, group them into categories based on their approaches,
+and discuss their strengths and weaknesses, as well as how they are similar to and differ
+from your work. In your opinion, which approaches were clever/good? What is the stateof-the-art?
+Do most people perform the task by hand? You should aim to have at least
+5 references in the related work. Include previous attempts by others at your problem,
+previous technical methods, or previous learning algorithms. Google Scholar is very useful
+for this: https://scholar.google.com/ (you can click “cite” and it generates MLA, APA,
+BibTeX, etc.)
+
+\section{Dataset and Features}
+Describe your dataset: how many training/validation/test examples do you have? Is there
+any preprocessing you did? What about normalization or data augmentation? What is the
+resolution of your images? How is your time-series data discretized? Include a citation on
+where you obtained your dataset from. Depending on available space, show some examples
+from your dataset. You should also talk about the features you used. If you extracted
+features using Fourier transforms, word2vec, PCA,
+ICA, etc. make sure to talk about it. Try to include examples of your data in the report
+(e.g. include an image, show a waveform, etc.).
+
+
+
+\section{ Methods }
+Describe your learning algorithms, proposed algorithm(s), or theoretical proof(s). Make
+sure to include relevant mathematical notation. For example, you can include the loss function you are using. It is okay to use formulas from the lectures (online or in-class). For each algorithm, give a short description 
+of how it works. Again, we are looking for your understanding of how these deep
+learning algorithms work. Although the teaching staff probably know the algorithms, future
+readers may not (reports will be posted on the class website). Additionally, if you are
+using a niche or cutting-edge algorithm (anything else not covered in the class), you may want to explain your algorithm using 1/2
+paragraphs. Note: Theory/algorithms projects may have an appendix showing extended
+proofs (see Appendix section below).
+
+\section{Experiments/Results/Discussion}
+You should also give details about what (hyper)parameters you chose (e.g. why did you
+use X learning rate for gradient descent, what was your mini-batch size and why) and how
+you chose them. What your primary metrics are: accuracy, precision,
+AUC, etc. Provide equations for the metrics if necessary. For results, you want to have a
+mixture of tables and plots. If you are solving a classification problem, you should include a
+confusion matrix or AUC/AUPRC curves. Include performance metrics such as precision,
+recall, and accuracy. For regression problems, state the average error. You should have
+both quantitative and qualitative results. To reiterate, you must have both quantitative
+and qualitative results! If it applies: include visualizations of results, heatmaps,
+examples of where your algorithm failed and a discussion of why certain algorithms failed
+or succeeded. In addition, explain whether you think you have overfit to your training set
+and what, if anything, you did to mitigate that. Make sure to discuss the figures/tables in
+your main text throughout this section. Your plots should include legends, axis labels, and
+have font sizes that are legible when printed.
+
+\section{Conclusion/Future Work }
+Summarize your report and reiterate key points. Which algorithms were the highestperforming?
+Why do you think that some algorithms worked better than others? For
+future work, if you had more time, more team members, or more computational resources,
+what would you explore?
+
+\section{Contributions}
+John Boccio was the only member of the team and completely all of the work described in this report.
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
