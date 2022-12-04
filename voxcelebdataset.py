@@ -161,18 +161,19 @@ class VoxCelebDataset(dataset.Dataset):
         self._transform = transforms.Compose(t)
 
         self._rng = np.random.default_rng(seed)
-        num_dirs = len(voxceleb_dir.iterdir())
+        num_dirs = len([f.is_dir() for f in voxceleb_dir.iterdir()])
         if self._use_tasks:
             self.celebs = []
             self.celeb_spectrograms = {}
             for i, celeb_dir in enumerate(voxceleb_dir.iterdir()):
-                print(f'Loading celeb dir {i}/{num_dirs}')
+                if (i % 100) == 0 or (i+1) == num_dirs:
+                    print(f'Loading celeb dir {i+1}/{num_dirs}')
                 celeb_utterances = spectrograms_dir / celeb_dir.stem
                 celeb_spectrograms = glob.glob(str(celeb_utterances / '*' / '*.png'))
                 if celeb_spectrograms:
                     if len(celeb_spectrograms) >= (num_support + num_query):
                         self.celebs += [celeb_dir.name]
-                        if self.dynamic_load:
+                        if self._dynamic_load:
                             self.celeb_spectrograms[celeb_dir.name] = celeb_spectrograms
                         else:
                             self.celeb_spectrograms[celeb_dir.name] = [self._transform(Image.open(spectrogram_path)) for spectrogram_path in celeb_spectrograms]
@@ -181,17 +182,19 @@ class VoxCelebDataset(dataset.Dataset):
             self._rng.shuffle(self.celebs)
         else:
             self.spectrograms = []
+            self.labels = []
             for i, celeb_dir in enumerate(voxceleb_dir.iterdir()):
-                print(f'Loading celeb dir {i}/{num_dirs}')
+                if (i % 100) == 0 or (i+1) == num_dirs:
+                    print(f'Loading celeb dir {i+1}/{num_dirs}')
                 celeb_utterances = spectrograms_dir / celeb_dir.stem
                 celeb_spectrograms = glob.glob(str(celeb_utterances / '*' / '*.png'))
                 if celeb_spectrograms:
                     celeb_id = int(celeb_dir.name[2:])
-                    if self.dynamic_load:
-                        self.spectrograms = celeb_spectrograms
+                    if self._dynamic_load:
+                        self.spectrograms += celeb_spectrograms
                     else:
                         self.spectrograms += [self._transform(Image.open(spectrogram_path)) for spectrogram_path in celeb_spectrograms]
-                    self.labels = [celeb_id for _ in celeb_spectrograms]
+                    self.labels += [celeb_id for _ in celeb_spectrograms]
 
     def __getitem__(self, idxs):
         if self._use_tasks:
@@ -202,8 +205,8 @@ class VoxCelebDataset(dataset.Dataset):
             for label, celeb_idx in enumerate(celeb_idxs):
                 celeb_spectrograms = self.celeb_spectrograms[self.celebs[celeb_idx]]
                 spectrogram_idxs = self._rng.choice(len(celeb_spectrograms), size=(self._num_query + self._num_support), replace=False)
-                if self.dynamic_load:
-                    spectrograms = [self._transform(Image.open(spectrogram_path)) for spectrogram_path in celeb_spectrograms[spectrogram_idxs]]
+                if self._dynamic_load:
+                    spectrograms = [self._transform(Image.open(celeb_spectrograms[spectrogram_idx])) for spectrogram_idx in spectrogram_idxs]
                 else:
                     spectrograms = celeb_spectrograms[spectrogram_idxs]
                 spectrograms_support += spectrograms[:self._num_support]
@@ -217,21 +220,14 @@ class VoxCelebDataset(dataset.Dataset):
             labels_query = torch.tensor(labels_query)
             return spectrograms_support, labels_support, spectrograms_query, labels_query
         else:
-            spectrograms = []
-            if self.dynamic_load:
-                spectrograms = [self._transform(Image.open(spectrogram_path)) for spectrogram_path in self.spectrograms[spectrogram_idxs]]
+            if self._dynamic_load:
+                spectrogram = self._transform(Image.open(self.spectrograms[idxs]))
             else:
-                spectrograms = self.spectrograms[idxs]
-            return torch.stack(spectrograms), torch.stack(self.labels[idxs])
-    
-    def __len__(self):
-        if self._use_tasks:
-            raise ValueError(f'{self._use_tasks=} does not have length')
-        else:
-            return len(self.spectrograms)
+                spectrogram = self.spectrograms[idxs]
+            return spectrogram, self.labels[idxs]
 
 
-class VoxCelebSampler(sampler.Sampler):
+class VoxCelebTaskSampler(sampler.Sampler):
     def __init__(self, num_celebs, num_way, num_tasks, seed=None) -> None:
         super().__init__(None)
         self._num_celebs = num_celebs
@@ -243,9 +239,25 @@ class VoxCelebSampler(sampler.Sampler):
         return (
             self._rng.choice(self._num_celebs, size=self._num_way, replace=False) for _ in range(self._num_tasks)
         )
-    
+
     def __len__(self):
         return self._num_tasks
+
+
+class VoxCelebSpectrogramSampler(sampler.Sampler):
+    def __init__(self, num_spectrograms, num_spectrograms_per_epoch, seed=None) -> None:
+        super().__init__(None)
+        self._num_spectrograms = num_spectrograms
+        self._num_spectrograms_per_epoch = num_spectrograms_per_epoch
+        self._rng = np.random.default_rng(seed)
+
+    def __iter__(self):
+        return (
+            self._rng.choice(self._num_spectrograms) for _ in range(self._num_spectrograms_per_epoch)
+        )
+
+    def __len__(self):
+        return self._num_spectrograms_per_epoch
 
 
 def get_voxceleb_task_dataloader(
@@ -256,7 +268,7 @@ def get_voxceleb_task_dataloader(
     num_tasks_per_epoch: int,
     voxceleb_dir: str,
     spectrograms_dir: str,
-    dynamic_load: bool=False,
+    dynamic_load: bool=True,
     resize: tuple=None,
     seed: int=None
 ):
@@ -266,7 +278,7 @@ def get_voxceleb_task_dataloader(
     return dataloader.DataLoader(
         dataset=voxceleb_dataset,
         batch_size=batch_size,
-        sampler=VoxCelebSampler(len(voxceleb_dataset.celebs), num_way, num_tasks_per_epoch),
+        sampler=VoxCelebTaskSampler(len(voxceleb_dataset.celebs), num_way, num_tasks_per_epoch),
         num_workers=8,
         collate_fn=lambda x: x,
         pin_memory=torch.cuda.is_available(),
@@ -275,10 +287,11 @@ def get_voxceleb_task_dataloader(
 
 
 def get_voxceleb_dataloader(
-    batch_size: int, 
+    batch_size: int,
+    num_iterations_per_epoch: int,
     voxceleb_dir: str,
     spectrograms_dir: str,
-    dynamic_load: bool=False,
+    dynamic_load: bool=True,
     resize: tuple=None,
     seed: int=None
 ):
@@ -288,8 +301,8 @@ def get_voxceleb_dataloader(
     return dataloader.DataLoader(
         dataset=voxceleb_dataset,
         batch_size=batch_size,
+        sampler=VoxCelebSpectrogramSampler(len(voxceleb_dataset.spectrograms), num_iterations_per_epoch),
         num_workers=8,
-        collate_fn=lambda x: x,
-        shuffle=True,
         pin_memory=torch.cuda.is_available(),
+        drop_last=True
     )

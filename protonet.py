@@ -7,6 +7,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch.utils import tensorboard
 import torchsummary
+from pathlib import Path
 
 import voxcelebdataset
 import voxcelebnetwork
@@ -16,17 +17,12 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class ProtoNet:
-    """Trains and assesses a prototypical network."""
 
-    def __init__(self, learning_rate, log_dir, num_test_tasks, test_interval, print_interval):
-        """Inits ProtoNet.
-
-        Args:
-            learning_rate (float): learning rate for the Adam optimizer
-            log_dir (str): path to logging directory
-        """
-
+    def __init__(self, learning_rate, log_dir, num_test_tasks, test_interval, print_interval, pretrained_weights):
         self._network = voxcelebnetwork.VoxCelebNetwork()
+        if pretrained_weights is not None:
+            self._network.load_state_dict(pretrained_weights)
+
         if torch.cuda.device_count() > 1:
             print(f'Using {torch.cuda.device_count()} GPUs')
             self._network = nn.DataParallel(self._network)
@@ -133,7 +129,7 @@ class ProtoNet:
                     i_step
                 )
 
-            if i_step % self._test_interval == 0:
+            if i_step == 0 or (i_step+1) % self._test_interval == 0:
                 with torch.no_grad():
                     losses, accuracies_support, accuracies_query = [], [], []
                     for val_task_batch in dataloader_val:
@@ -152,19 +148,19 @@ class ProtoNet:
                     f'support accuracy: {accuracy_support:.3f}, '
                     f'query accuracy: {accuracy_query:.3f}'
                 )
-                writer.add_scalar('loss/val', loss, i_step)
+                writer.add_scalar('loss/val', loss, i_step+1)
                 writer.add_scalar(
                     'val_accuracy/support',
                     accuracy_support,
-                    i_step
+                    i_step+1
                 )
                 writer.add_scalar(
                     'val_accuracy/query',
                     accuracy_query,
-                    i_step
+                    i_step+1
                 )
 
-                self._save(i_step)
+                self._save(i_step+1)
 
     def test(self, dataloader_test):
         """Evaluate the ProtoNet on test tasks.
@@ -173,8 +169,9 @@ class ProtoNet:
             dataloader_test (DataLoader): loader for test tasks
         """
         accuracies = []
-        for task_batch in dataloader_test:
-            accuracies.append(self._step(task_batch)[2])
+        for i in range(self._num_test_tasks):
+            task = dataloader_test[i]
+            accuracies.append(self._step(task)[2])
         mean = np.mean(accuracies)
         std = np.std(accuracies)
         mean_95_confidence_interval = 1.96 * std / np.sqrt(self._num_test_tasks)
@@ -201,7 +198,7 @@ class ProtoNet:
             state = torch.load(target_path)
             self._network.load_state_dict(state['network_state_dict'])
             self._optimizer.load_state_dict(state['optimizer_state_dict'])
-            self._start_train_step = checkpoint_step + 1
+            self._start_train_step = checkpoint_step
             print(f'Loaded checkpoint iteration {checkpoint_step}.')
         else:
             raise ValueError(
@@ -224,13 +221,26 @@ class ProtoNet:
 
 def main(args):
     log_dir = args.log_dir
+    pretrained_weights = args.pretrained_weights
     if log_dir is None:
-        log_dir = f'./logs/voxceleb/protonet.way:{args.num_way}.support:{args.num_support}.query:{args.num_query}.lr:{args.learning_rate}.batch_size:{args.batch_size}'  # pylint: disable=line-too-long
+        log_dir = f'./logs/voxceleb/protonet.way:{args.num_way}.support:{args.num_support}.query:{args.num_query}.lr:{args.learning_rate}.batch_size:{args.batch_size}'
+        if pretrained_weights is not None:
+            pretrained_weights_path = Path(args.pretrained_weights)
+            pretrained_weights_name = pretrained_weights_path.parent.name
+            split = pretrained_weights_name.split('.')
+            mask = split[1].split(':')[1]
+            mask_ratio = split[2].split(':')[1]
+            log_dir += f'.mask:{mask}.mask_ratio:{mask_ratio}'
     print(f'log_dir: {log_dir}')
     print(f'Device: {DEVICE}')
     writer = tensorboard.SummaryWriter(log_dir=log_dir)
+ 
+    if pretrained_weights is not None:
+        print(f'Using pretrained weights from {pretrained_weights}')
+        state = torch.load(pretrained_weights)
+        pretrained_weights = state['encoder_network_state_dict']
 
-    protonet = ProtoNet(args.learning_rate, log_dir, args.test_tasks, args.test_interval, args.print_interval)
+    protonet = ProtoNet(args.learning_rate, log_dir, args.test_tasks, args.test_interval, args.print_interval, pretrained_weights)
     torchsummary.summary(protonet._network, (1, 256, 301), batch_size=args.num_way * (args.num_support + args.num_query), device=DEVICE.type)
 
     if args.checkpoint_step > -1:
@@ -239,8 +249,7 @@ def main(args):
         print('Checkpoint loading skipped.')
 
     if not args.test:
-        num_training_tasks = args.batch_size * (args.num_train_iterations -
-                                                args.checkpoint_step - 1)
+        num_training_tasks = args.batch_size * (args.num_train_iterations - args.checkpoint_step)
         print(
             f'Training on tasks with composition '
             f'num_way={args.num_way}, '
@@ -293,6 +302,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Perform few shot speaker identification using meta learning on the voxceleb dataset')
     parser.add_argument('--log_dir', type=str, default=None,
                         help='directory to save to or load from')
+    parser.add_argument('--pretrained_weights', type=str, default=None,
+                        help='Path to pretrained weights from MAE')
     parser.add_argument('--num_way', type=int, default=5,
                         help='number of classes in a task')
     parser.add_argument('--num_support', type=int, default=1,

@@ -24,20 +24,46 @@
                 "PYTHONPATH": "${cwd}",
             },
             "args": [
-                "--log_dir", "logs",
+                // "--log_dir", "logs/protonet.way:5.support:5.query:15.lr:0.001.batch_size:16",
+                // "--checkpoint_step", "4000"
+                // "--pretrain_weights", "logs/voxceleb/mae.mask:boxes.mask_ratio:0.75.lr:0.005.batch_size:64/state9500.pt",
                 "--num_way", "5",
                 "--num_support", "5",
                 "--num_query", "15",
                 "--learning_rate", "0.001",
-                "--batch_size", "16",
+                "--batch_size", "8",
                 "--num_train_iterations", "5000",
                 "--train_url_directory", "data/vox1_dev_txt",
                 "--test_url_directory", "data/vox1_test_txt",
                 "--spectrogram_directory", "data/spectrograms",
                 "--test_interval", "50",
                 "--print_interval", "10",
-                // "--checkpoint_step", "4000"
-                // "--test'
+            ]
+        },
+        {
+            "name": "Python: protonet test",
+            "type": "python",
+            "request": "launch",
+            "program": "protonet.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${cwd}",
+            },
+            "args": [
+                "--log_dir", "logs/voxceleb/protonet.way:5.support:5.query:15.lr:0.001.batch_size:16",
+                "--checkpoint_step", "4000",
+                "--num_way", "5",
+                "--num_support", "5",
+                "--num_query", "15",
+                "--learning_rate", "0.001",
+                "--batch_size", "8",
+                "--train_url_directory", "data/vox1_dev_txt",
+                "--test_url_directory", "data/vox1_test_txt",
+                "--spectrogram_directory", "data/spectrograms",
+                "--test",
+                "--test_iterations", "100",
             ]
         },
         {
@@ -52,19 +78,43 @@
                 "PYTHONPATH": "${cwd}",
             },
             "args": [
-                // "--log_dir", "logs/voxceleb/mae...",
-                "--learning_rate", "0.001",
+                "--log_dir", "logs/voxceleb/mae.mask:boxes.mask_ratio:0.75.lr:0.005.batch_size:64",
+                "--checkpoint_iteration", "7500",
+                "--learning_rate", "0.005",
                 "--mask", "boxes",
                 "--mask_ratio", "0.75",
-                "--batch_size", "8",
-                "--num_epochs", "30",
+                "--batch_size", "64",
+                "--num_iterations", "10000",
                 "--train_url_directory", "data/vox1_dev_txt",
                 "--test_url_directory", "data/vox1_test_txt",
                 "--spectrogram_directory", "data/spectrograms",
-                "--test_interval", "50",
                 "--print_interval", "10",
-                // "--checkpoint_step", "4000"
-                // "--test'
+                "--test_interval", "500",
+            ]
+        },
+        {
+            "name": "Python: mae test",
+            "type": "python",
+            "request": "launch",
+            "program": "mae.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${cwd}",
+            },
+            "args": [
+                "--log_dir", "logs/voxceleb/mae.mask:boxes.mask_ratio:0.75.lr:0.005.batch_size:64",
+                "--checkpoint_iteration", "4500",
+                "--learning_rate", "0.005",
+                "--mask", "boxes",
+                "--mask_ratio", "0.75",
+                "--batch_size", "64",
+                "--train_url_directory", "data/vox1_dev_txt",
+                "--test_url_directory", "data/vox1_test_txt",
+                "--spectrogram_directory", "data/spectrograms",             
+                "--test",
+                "--test_iterations", "100",
             ]
         },
     ]

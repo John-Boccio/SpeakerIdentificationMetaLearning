@@ -3,9 +3,6 @@ from torch import nn
 import warnings
 
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
 class VoxCelebNetwork(nn.Module):
     def __init__(self, max_pool_return_indicies=False):
         super().__init__()
@@ -29,10 +26,10 @@ class VoxCelebNetwork(nn.Module):
 
         # Do a passthrough to get the feature sizes at each layer
         feature_sizes = [torch.Size((1, 256, 301))]
-        x = torch.rand(feature_sizes[0]).to(DEVICE).reshape((1, 1, 256, 301))
+        x = torch.rand(feature_sizes[0]).reshape((1, 1, 256, 301))
         max_pool_idxs = []
         for layer in self._layers:
-            if isinstance(layer, nn.MaxPool2d):
+            if isinstance(layer, nn.MaxPool2d) and max_pool_return_indicies:
                 x, max_pool_indicies = layer(x)
                 max_pool_idxs += [max_pool_indicies]
             else:
