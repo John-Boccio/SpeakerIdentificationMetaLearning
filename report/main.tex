@@ -76,36 +76,91 @@ accuracy achieved decreased to 91\%.
 
 \end{abstract}
 
-\section{Introduction}	
-Explain the problem and why it is important. Discuss your motivation for pursuing this
-problem. Give some background if necessary. Clearly state what the input and output
-is. Be very explicit: “The input to our algorithm is an {image, amplitude, patient age,
-rainfall measurements, grayscale video, etc.}. We then use a {SVM, neural network, linear
-regression, etc.} to output a predicted {age, stock price, cancer type, music genre, etc.}.”
-This is very important since different teams have different inputs/outputs spanning different
-application domains. Being explicit about this makes it easier for readers. If you are using
-your project for multiple classes, add a paragraph explaining which components of the
-project were used for each class.
+\section{Introduction}
+The problem that this paper is solving is the problem of speaker identification; given a set of speakers, create an
+algorithm to identify which one of those speakers is speaking in an audio clip. This problem has a wide variety of 
+applications ranging from security, automatic speech recognition, and forensic analysis. 
+
+% Explain the problem and why it is important. Discuss your motivation for pursuing this
+% problem. Give some background if necessary. Clearly state what the input and output
+% is. Be very explicit: “The input to our algorithm is an {image, amplitude, patient age,
+% rainfall measurements, grayscale video, etc.}. We then use a {SVM, neural network, linear
+% regression, etc.} to output a predicted {age, stock price, cancer type, music genre, etc.}.”
+% This is very important since different teams have different inputs/outputs spanning different
+% application domains. Being explicit about this makes it easier for readers. If you are using
+% your project for multiple classes, add a paragraph explaining which components of the
+% project were used for each class.
 
 \section{Related work}
-You should find existing papers, group them into categories based on their approaches,
-and discuss their strengths and weaknesses, as well as how they are similar to and differ
-from your work. In your opinion, which approaches were clever/good? What is the stateof-the-art?
-Do most people perform the task by hand? You should aim to have at least
-5 references in the related work. Include previous attempts by others at your problem,
-previous technical methods, or previous learning algorithms. Google Scholar is very useful
-for this: https://scholar.google.com/ (you can click “cite” and it generates MLA, APA,
-BibTeX, etc.)
+There are multiple ways to tackle this problem and how you do so can depend on the data that you have available and 
+the use case. If all of the speakers that need to be identified are known ahead of time and that set of speakers will 
+not change, then a large network could be created to perform the classification. This approach is quite fragile as it 
+depends on knowing all the potential speakers ahead of time, having plently of data for each, and restricts you to 
+always classifying from your entire speaker set. Another approach is to form i-vectors \cite{ivectors}. An i-vector
+is a representation of an utterance that is formed by utilizing a statisical model and speech-to-text. Characteristic 
+information about a speaker's voice is contained within these i-vectors which can then be applied to the speaker 
+identification task. This approach works well in some scenarios but still falls short as the i-vector may not be optimal
+for finding separability between speakers even though it captures the characteristics of a speakers voice.
+
+The shortcomings of classifying all speakers and using i-vectors can be resolved by using meta-learning. 
+
+% You should find existing papers, group them into categories based on their approaches,
+% and discuss their strengths and weaknesses, as well as how they are similar to and differ
+% from your work. In your opinion, which approaches were clever/good? What is the stateof-the-art?
+% Do most people perform the task by hand? You should aim to have at least
+% 5 references in the related work. Include previous attempts by others at your problem,
+% previous technical methods, or previous learning algorithms. Google Scholar is very useful
+% for this: https://scholar.google.com/ (you can click “cite” and it generates MLA, APA,
+% BibTeX, etc.)
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.6\textwidth]{Images/spectrogram_example.png}
+  \caption[]{Spectrogram Captured from 3 Seconds of Speech}
+  \label{fig:SpectrogramExample}
+\end{figure}
 
 \section{Dataset and Features}
-Describe your dataset: how many training/validation/test examples do you have? Is there
-any preprocessing you did? What about normalization or data augmentation? What is the
-resolution of your images? How is your time-series data discretized? Include a citation on
-where you obtained your dataset from. Depending on available space, show some examples
-from your dataset. You should also talk about the features you used. If you extracted
-features using Fourier transforms, word2vec, PCA,
-ICA, etc. make sure to talk about it. Try to include examples of your data in the report
-(e.g. include an image, show a waveform, etc.).
+The dataset used for this paper consists entirely of data from VoxCeleb \cite{DBLP:journals/corr/NagraniCZ17}. The 
+VoxCeleb dataset is a collection of over 150,000 utterances from 1,251 celebrities. There is also the VoxCeleb2 \cite{Chung18b} 
+dataset, which has even more celebrities and utterances, but VoxCeleb1 provided enough data for the purposes of this paper.
+The owners and maintainers of VoxCeleb no longer host a download for all of the audio files of the utterances but the 
+links to the youtube videos with labeled timestamps is available. A tool had to be created to scrape the data off of
+youtube to reconstruct this dataset. The final result is a few thousand audio files, each of which have associated labeled
+timestamps that specify which celebrity was speaking.
+
+\subsection{Audio Preprocessing}
+To preprocess the audio data from the VoxCeleb1 dataset, the raw audio data was converted into a melspectrogram. A 
+spectrogram is a visual representation of the frequency content of a signal over time, and it can be useful for 
+analyzing the characteristics of a speaker's voice. A melspectrogram, on the other hand, represents the audio data in 
+terms of mel-frequency bins, which are a nonlinear scale of frequency that is closer to the way the human ear perceives 
+sound. One advantage of using a melspectrogram instead of a regular spectrogram is that it can better capture the 
+characteristics of the human voice, such as the pitch and timbre. This is because the mel-frequency scale is more closely 
+aligned with the way the human ear processes sound, so a melspectrogram can better represent the spectral content of speech signals.
+
+Since all of the utterances are of different lengths, a single length had to be decided on. In this paper, the 
+length that was chosen was 3 seconds. If an utterance was greater than 3 seconds, then it was split into multiple 3 
+second utterances. Any utterance that was less than 3 seconds was thrown out.
+
+The Fast Fourier Transform (FFT) was used to convert the 3 seconds of audio data into the melspectrogram. The spectrogram
+was created with 256 mels, 2048 point FFTs, a hanning windowing function, and a hop length equivalent to 10 milliseconds. 
+All of the audio data was downloaded at a sample rate of 16 kHz, so a 10 millisecond hop length is equivalent to 160 
+samples. The audio sampling rate being 16 kHz also implies that the maximum frequency of the spectrogram is 8 kHz which 
+is enough to capture the large majority of speech sounds.
+
+Once all the utterances are converted into melspectrograms, we arrive at a labeled dataset of over 250,000 images of 
+size 256 by 301. This paper uses the same train and test split that is provided by VoxCeleb; 1,211 celebrities are in 
+the training set and 40 celebrities are in the test set. The features in the melspectrograms provide the information
+needed to create models that can perform speaker identification.
+
+% Describe your dataset: how many training/validation/test examples do you have? Is there
+% any preprocessing you did? What about normalization or data augmentation? What is the
+% resolution of your images? How is your time-series data discretized? Include a citation on
+% where you obtained your dataset from. Depending on available space, show some examples
+% from your dataset. You should also talk about the features you used. If you extracted
+% features using Fourier transforms, word2vec, PCA,
+% ICA, etc. make sure to talk about it. Try to include examples of your data in the report
+% (e.g. include an image, show a waveform, etc.).
 
 
 
