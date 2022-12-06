@@ -1,3 +1,19 @@
-\begin{thebibliography}{}
+\begin{thebibliography}{1}
+
+\bibitem{DBLP:journals/corr/abs-2111-06377}
+Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Doll{\'{a}}r, and
+  Ross~B. Girshick.
+\newblock Masked autoencoders are scalable vision learners.
+\newblock {\em CoRR}, abs/2111.06377, 2021.
+
+\bibitem{DBLP:journals/corr/NagraniCZ17}
+Arsha Nagrani, Joon~Son Chung, and Andrew Zisserman.
+\newblock Voxceleb: a large-scale speaker identification dataset.
+\newblock {\em CoRR}, abs/1706.08612, 2017.
+
+\bibitem{DBLP:journals/corr/SnellSZ17}
+Jake Snell, Kevin Swersky, and Richard~S. Zemel.
+\newblock Prototypical networks for few-shot learning.
+\newblock {\em CoRR}, abs/1703.05175, 2017.
 
 \end{thebibliography}

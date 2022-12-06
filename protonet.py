@@ -225,12 +225,9 @@ def main(args):
     if log_dir is None:
         log_dir = f'./logs/voxceleb/protonet.way:{args.num_way}.support:{args.num_support}.query:{args.num_query}.lr:{args.learning_rate}.batch_size:{args.batch_size}'
         if pretrained_weights is not None:
-            pretrained_weights_path = Path(args.pretrained_weights)
-            pretrained_weights_name = pretrained_weights_path.parent.name
-            split = pretrained_weights_name.split('.')
-            mask = split[1].split(':')[1]
-            mask_ratio = split[2].split(':')[1]
-            log_dir += f'.mask:{mask}.mask_ratio:{mask_ratio}'
+            assert args.mask is not None
+            assert args.mask_ratio is not None
+            log_dir += f'.mask:{args.mask}.mask_ratio:{args.mask_ratio}'
     print(f'log_dir: {log_dir}')
     print(f'Device: {DEVICE}')
     writer = tensorboard.SummaryWriter(log_dir=log_dir)
@@ -304,6 +301,10 @@ if __name__ == '__main__':
                         help='directory to save to or load from')
     parser.add_argument('--pretrained_weights', type=str, default=None,
                         help='Path to pretrained weights from MAE')
+    parser.add_argument('--mask', type=str, default=None, choices=['none', 'strips', 'boxes'],
+                        help='Mask to use for the MAE')
+    parser.add_argument('--mask_ratio', type=float, default=None,
+                        help='Mask ratio to use')
     parser.add_argument('--num_way', type=int, default=5,
                         help='number of classes in a task')
     parser.add_argument('--num_support', type=int, default=1,

@@ -9,10 +9,10 @@
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 \usepackage{graphicx}
-\title{Few-Shot Speaker Identification Using Meta-Learning}
+\title{Few-Shot Speaker Identification Using Masked Autoencoders and Meta-Learning}
 
 \author{
-  John Boccio
+  John Boccio \\
   Department of Electrical Engineering\\
   Stanford University\\
   \texttt{jboccio@stanford.edu} \\
@@ -44,9 +44,35 @@
 \maketitle
 
 \begin{abstract}
-Speaker identification refers to the task of identifying which speaker is talking from a previously given set of 
-speakers. A similar research area is speaker verification - given a single speaker, identify when that speaker is 
-talking. 
+Speaker identification refers to the task of identifying which speaker is talking from a given set of 
+speakers. With the rise of deep learning and data driven approaches to audio processing problems, new approaches can be
+taken on this problem which traditionally was performed by trying to find separability between
+speakers using hand-engineered feature extractors. The speaker identification problem is a very appropriate problem for meta-learning. 
+Meta learning is a machine learning technique in which a model is trained to learn how to learn, allowing it to 
+adapt to new tasks quickly using relatively little data. By applying meta-learning to the speaker identification problem, 
+a model can be trained to learn how to recognize speakers from a small amount of audio samples from each of the speakers. 
+This could be useful in scenarios where the set of possible speakers is not known in advance, or where the speakers may vary over time.
+\\
+\\
+All of the data that was used for this paper comes from the VoxCeleb dataset \cite{DBLP:journals/corr/NagraniCZ17}. VoxCeleb
+provides labeled audio data spoken from over 1,000 celebrities. These audio files are then cut into 3 second segments and 
+converted into a spectrogram which will then be fed into a convolutional neural network. The final
+result is a dataset with over 200,000 spectrograms, each labeled with an id that represents the celebrity that is talking.
+\\
+\\
+The approach that this paper has taken towards applying meta-learning to the speaker identification problem is through the 
+use of a prototypical network (protonet) \cite{DBLP:journals/corr/SnellSZ17}. The protonet generates an representation of a
+spectrogram from one speaker which, ideally, is a far distance from the representation of a spectrogram from a different
+speaker. These representations of each speaker are then used to perform classification. This paper also experiments with 
+the affects of pretraining the network using a masked autoencoder \cite{DBLP:journals/corr/abs-2111-06377}. When applied to speaker identification, 
+a masked auto encoder can be trained to extract characteristics of a speaker's voice from audio samples and use these 
+characteristics to identify the speaker. Combining meta learning with masked auto encoders offers the potential to train 
+a speaker identification model that can adapt to new speakers quickly and accurately using a small amount of training data. 
+\\
+\\
+Given 5 examples of 5 different speakers, a model trained from scratch is able to identify who from these 5 speakers is
+talking with 94\% accuracy. When the model is initialized with the weights learned from the masked autoencoder, the best
+accuracy achieved decreased to 91\%.
 
 \end{abstract}
 
@@ -109,14 +135,14 @@ and what, if anything, you did to mitigate that. Make sure to discuss the figure
 your main text throughout this section. Your plots should include legends, axis labels, and
 have font sizes that are legible when printed.
 
-\section{Conclusion/Future Work }
+\section{Conclusion and Future Work}
 Summarize your report and reiterate key points. Which algorithms were the highestperforming?
 Why do you think that some algorithms worked better than others? For
 future work, if you had more time, more team members, or more computational resources,
 what would you explore?
 
 \section{Contributions}
-John Boccio was the only member of the team and completely all of the work described in this report.
+John Boccio was the only member of the team and completed all of the work described in this report.
 
 \bibliographystyle{plain}
 \bibliography{refs}

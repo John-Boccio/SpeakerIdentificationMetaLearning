@@ -103,7 +103,7 @@ class VoxCelebNetworkMAE:
         image_batch = image_batch.to(DEVICE)
         batch_size = image_batch.shape[0]
 
-        mask = torch.ones_like(image_batch, requires_grad=True)
+        mask = torch.ones_like(image_batch)
         if self._mask == 'boxes':
             mask = torch.ones_like(image_batch)
             box_size = (16, 30)
@@ -122,7 +122,7 @@ class VoxCelebNetworkMAE:
                     col_start, col_end = col_idxs[col], col_idxs[col+1]
                     mask[i, :, row_start:row_end, col_start:col_end] = 0.0
         elif self._mask =='strips':
-            strip_size = 30
+            strip_size = 10
             num_strips = 301 // strip_size
             strip_idxs = np.arange(num_strips) * strip_size
             strip_idxs = np.append(strip_idxs, 301)
@@ -131,7 +131,8 @@ class VoxCelebNetworkMAE:
                 strips_to_mask = np.random.choice(num_strips, replace=False, size=num_strips_to_mask)
                 for col in strips_to_mask:
                     col_start, col_end = strip_idxs[col], strip_idxs[col+1]
-                    mask[:, :, :, col_start:col_end] = 0.0
+                    mask[i, :, :, col_start:col_end] = 0.0
+        mask.requires_grad = True
         mask = mask.to(DEVICE)
 
         x = self._encoder(image_batch * mask)
@@ -173,7 +174,7 @@ class VoxCelebNetworkMAE:
                     loss = np.mean(losses)
                 print(
                     f'Validation: '
-                    f'loss: {loss:.3f}, '
+                    f'loss: {loss:.3f}'
                 )
                 writer.add_scalar('loss/val', loss, i_step+1)
                 self.save(i_step+1)
