@@ -116,7 +116,7 @@ The shortcomings of classifying all speakers and using i-vectors can be resolved
 \begin{figure}
   \centering
   \includegraphics[width=0.6\textwidth]{Images/spectrogram_example.png}
-  \caption[]{Spectrogram Captured from 3 Seconds of Speech}
+  \caption{Spectrogram Captured from 3 Seconds of Speech}
   \label{fig:SpectrogramExample}
 \end{figure}
 
@@ -146,12 +146,17 @@ The Fast Fourier Transform (FFT) was used to convert the 3 seconds of audio data
 was created with 256 mels, 2048 point FFTs, a hanning windowing function, and a hop length equivalent to 10 milliseconds. 
 All of the audio data was downloaded at a sample rate of 16 kHz, so a 10 millisecond hop length is equivalent to 160 
 samples. The audio sampling rate being 16 kHz also implies that the maximum frequency of the spectrogram is 8 kHz which 
-is enough to capture the large majority of speech sounds.
+is enough to capture most speech sounds.
 
 Once all the utterances are converted into melspectrograms, we arrive at a labeled dataset of over 250,000 images of 
-size 256 by 301. This paper uses the same train and test split that is provided by VoxCeleb; 1,211 celebrities are in 
-the training set and 40 celebrities are in the test set. The features in the melspectrograms provide the information
-needed to create models that can perform speaker identification.
+size 256 by 301. An example spectrogram can be seen in figure \ref{fig:SpectrogramExample}. This paper uses the same 
+train and test split that is provided by VoxCeleb; 1,211 celebrities are in the training set and 40 celebrities are in 
+the test set. The features in the melspectrograms provide the information needed to create models that can perform 
+speaker identification.
+
+% \begin{equation}
+%   L_{\text{prototypical}} = \frac{1}{n} \sum_{i=1}^n \text{dist} \left( \boldsymbol{p}_i, f(\boldsymbol{x}_i) \right)
+% \end{equation}
 
 % Describe your dataset: how many training/validation/test examples do you have? Is there
 % any preprocessing you did? What about normalization or data augmentation? What is the
@@ -165,39 +170,119 @@ needed to create models that can perform speaker identification.
 
 
 \section{ Methods }
-Describe your learning algorithms, proposed algorithm(s), or theoretical proof(s). Make
-sure to include relevant mathematical notation. For example, you can include the loss function you are using. It is okay to use formulas from the lectures (online or in-class). For each algorithm, give a short description 
-of how it works. Again, we are looking for your understanding of how these deep
-learning algorithms work. Although the teaching staff probably know the algorithms, future
-readers may not (reports will be posted on the class website). Additionally, if you are
-using a niche or cutting-edge algorithm (anything else not covered in the class), you may want to explain your algorithm using 1/2
-paragraphs. Note: Theory/algorithms projects may have an appendix showing extended
-proofs (see Appendix section below).
+There are two methods used in this paper to achieve few-shot learning on the speaker identification problem. The first
+method is to use protonets trained from scratch on the VoxCeleb dataset. The second method is to perform unsupervised
+pretraining using a masked autoencoder and then training a protonet for few-shot learning with the weights initialized
+to those learned by the masked autoencoder.
 
-\section{Experiments/Results/Discussion}
-You should also give details about what (hyper)parameters you chose (e.g. why did you
-use X learning rate for gradient descent, what was your mini-batch size and why) and how
-you chose them. What your primary metrics are: accuracy, precision,
-AUC, etc. Provide equations for the metrics if necessary. For results, you want to have a
-mixture of tables and plots. If you are solving a classification problem, you should include a
-confusion matrix or AUC/AUPRC curves. Include performance metrics such as precision,
-recall, and accuracy. For regression problems, state the average error. You should have
-both quantitative and qualitative results. To reiterate, you must have both quantitative
-and qualitative results! If it applies: include visualizations of results, heatmaps,
-examples of where your algorithm failed and a discussion of why certain algorithms failed
-or succeeded. In addition, explain whether you think you have overfit to your training set
-and what, if anything, you did to mitigate that. Make sure to discuss the figures/tables in
-your main text throughout this section. Your plots should include legends, axis labels, and
-have font sizes that are legible when printed.
+\subsection{Prototypical Network}
+The data being used to identify speakers is a spectrogram of human speech. This makes makes using a convolutional neural network
+a very appealing choice. A spectrogram can be treated as an image and then the CNN can be used to find features within
+the spectrogram to identify the speakers. In order to perform few-shot learning with the prototypical network, the problem
+needs to be formed in such a way that meta-learning can be applied, as in we want to train the network to learn how to learn
+to identify speakers from a few given examples.
+
+The convolutional neural network itself can be thought of as an encoder. In this paper, we used a simple 6 layer 
+convlutional neural network which can be seen in table \ref{tab:CNN}. It takes as input a spectrogram and outputs a
+1024-dimensional vector. When various spectrograms of a speaker are inputted into this network, the CNN should produce
+similar encodings. This would imply that the encodings store information about the humans voice such as its timbre and 
+pitch and not information about a particular utterance. The CNN can be driven to create such encodings by utilizing the
+prototypical loss defined in "Prototypical Networks for Few-shot Learning" \cite[]{DBLP:journals/corr/SnellSZ17}.
+
+When performing meta-learning, it is common to refer to the number of classes $N$ and the number of examples of each class
+given as $K$, or N-way K-shot learning. When using the prototypical loss, we take our $K$ samples of each class, form the
+encoding using the CNN, and average them to create a prototype for each class $\mathbf{c}_k$ as seen in equation \ref{eq:prototype}.
+$S_k$ refers to all the examples for class $k$, $\mathbf{x}_i$ is the spectrogram, and $y_i$ is the speaker label.
+
+\begin{equation}
+  \mathbf{c}_k = \frac{1}{|S_k|} \sum_{\left(\mathbf{x}_i, y_i\right) \in S_k} f_\phi\left(\mathbf{x}_i\right)
+  \label{eq:prototype}
+\end{equation}
+
+Once the prototypes $\mathbf{c}_k$ are created, we then classify a new speaker by creating it's encoding 
+$f_\phi\left(\mathbf{x}_i\right)$ and finding which prototype $\mathbf{c}_k$ it is closest to using a distance function
+$d$. This can be done with a softmax function as shown in equation \ref{eq:prototype_probability}. The network can then 
+be optimized by taking negative-log probability of $p_\phi\left(y=k | \mathbf{x}\right)$ and minimizing it. The final
+prototypical loss is shown in equation \ref{eq:prototypical_loss}. The number of classes $N$ and number of samples for
+each class $K$ can be adjusted based on the specific problem being solved.
+
+\begin{equation}
+  p_\phi\left(y=k | \mathbf{x}\right) = \frac{\exp\left(-d\left(f_\phi\left(\mathbf{x}\right), \mathbf{c}_k\right)\right)}{\sum_{k'} \exp\left(-d\left(f_\phi\left(\mathbf{x}\right), \mathbf{c}_{k'}\right)\right) }
+  \label{eq:prototype_probability}
+\end{equation}
+
+\begin{equation}
+  J\left(\phi\right) = - \log \left(p_\phi\left(y=k | \mathbf{x}\right)\right)
+  \label{eq:prototypical_loss}
+\end{equation}
+
+\subsection{Unsupervised Pretraining with Masked Autoencoders}
+
+
+% Describe your learning algorithms, proposed algorithm(s), or theoretical proof(s). Make
+% sure to include relevant mathematical notation. For example, you can include the loss function you are using. It is okay to use formulas from the lectures (online or in-class). For each algorithm, give a short description 
+% of how it works. Again, we are looking for your understanding of how these deep
+% learning algorithms work. Although the teaching staff probably know the algorithms, future
+% readers may not (reports will be posted on the class website). Additionally, if you are
+% using a niche or cutting-edge algorithm (anything else not covered in the class), you may want to explain your algorithm using 1/2
+% paragraphs. Note: Theory/algorithms projects may have an appendix showing extended
+% proofs (see Appendix section below).
+
+\section{Experiments, Results, \& Discussion}
+% You should also give details about what (hyper)parameters you chose (e.g. why did you
+% use X learning rate for gradient descent, what was your mini-batch size and why) and how
+% you chose them. What your primary metrics are: accuracy, precision,
+% AUC, etc. Provide equations for the metrics if necessary. For results, you want to have a
+% mixture of tables and plots. If you are solving a classification problem, you should include a
+% confusion matrix or AUC/AUPRC curves. Include performance metrics such as precision,
+% recall, and accuracy. For regression problems, state the average error. You should have
+% both quantitative and qualitative results. To reiterate, you must have both quantitative
+% and qualitative results! If it applies: include visualizations of results, heatmaps,
+% examples of where your algorithm failed and a discussion of why certain algorithms failed
+% or succeeded. In addition, explain whether you think you have overfit to your training set
+% and what, if anything, you did to mitigate that. Make sure to discuss the figures/tables in
+% your main text throughout this section. Your plots should include legends, axis labels, and
+% have font sizes that are legible when printed.
 
 \section{Conclusion and Future Work}
-Summarize your report and reiterate key points. Which algorithms were the highestperforming?
-Why do you think that some algorithms worked better than others? For
-future work, if you had more time, more team members, or more computational resources,
-what would you explore?
+% Summarize your report and reiterate key points. Which algorithms were the highestperforming?
+% Why do you think that some algorithms worked better than others? For
+% future work, if you had more time, more team members, or more computational resources,
+% what would you explore?
 
 \section{Contributions}
-John Boccio was the only member of the team and completed all of the work described in this report.
+John Boccio was the only member of the team and completed all of the work described in this report. The code for this 
+project has been made public and can be found at 
+\href{https://github.com/John-Boccio/SpeakerIdentificationMetaLearning}{https://github.com/John-Boccio/SpeakerIdentificationMetaLearning}.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{l|l|l}
+    \textbf{Layer} & \textbf{Parameters} & \textbf{Activation Function} \\ \hline
+    Input & - & - \\
+    Convolutional & 16 filters, 3x3 kernel & ReLU \\
+    Batch Norm. & 16 features & - \\
+    Max Pooling & 2x2 pool size & - \\
+    Convolutional & 32 filters, 3x3 kernel & ReLU \\
+    Batch Norm. & 32 features & - \\
+    Max Pooling & 2x2 pool size & - \\
+    Convolutional & 64 filters, 3x3 kernel & ReLU \\
+    Batch Norm. & 64 features & - \\
+    Max Pooling & 2x2 pool size & - \\
+    Convolutional & 64 filters, 3x3 kernel & ReLU \\
+    Batch Norm. & 64 features & - \\
+    Max Pooling & 2x2 pool size & - \\
+    Convolutional & 64 filters, 3x3 kernel & ReLU \\
+    Batch Norm. & 64 features & - \\
+    Max Pooling & 2x2 pool size & - \\
+    Convolutional & 64 filters, 3x3 kernel & ReLU \\
+    Batch Norm. & 64 features & - \\
+    Max Pooling & 2x2 pool size & - \\
+    Flatten & 1024 neurons & - \\
+  \end{tabular}
+  \caption{Convolutional neural network used in all experiments}
+  \label{tab:CNN}
+\end{table}
 
 \bibliographystyle{plain}
 \bibliography{refs}
