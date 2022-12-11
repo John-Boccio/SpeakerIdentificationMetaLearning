@@ -9,6 +9,9 @@
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 \usepackage{graphicx}
+
+\newcommand\headercell[1]{\smash{\begin{tabular}[t]{@{}c@{}} #1 \end{tabular}}}
+
 \title{Few-Shot Speaker Identification Using Masked Autoencoders and Meta-Learning}
 
 \author{
@@ -104,6 +107,9 @@ for finding separability between speakers even though it captures the characteri
 
 The shortcomings of classifying all speakers and using i-vectors can be resolved by using meta-learning. 
 
+Autoencoders were first introduced in the book "Parallel distributed processing: explorations in the microstructure of 
+cognition" \cite{ParallelDistributedProcessing}.
+
 % You should find existing papers, group them into categories based on their approaches,
 % and discuss their strengths and weaknesses, as well as how they are similar to and differ
 % from your work. In your opinion, which approaches were clever/good? What is the stateof-the-art?
@@ -116,7 +122,7 @@ The shortcomings of classifying all speakers and using i-vectors can be resolved
 \begin{figure}
   \centering
   \includegraphics[width=0.6\textwidth]{Images/spectrogram_example.png}
-  \caption{Spectrogram Captured from 3 Seconds of Speech}
+  \caption{Spectrogram captured from 3 seconds of speech}
   \label{fig:SpectrogramExample}
 \end{figure}
 
@@ -167,7 +173,12 @@ speaker identification.
 % ICA, etc. make sure to talk about it. Try to include examples of your data in the report
 % (e.g. include an image, show a waveform, etc.).
 
-
+\begin{figure}
+  \centering
+  \includegraphics[width=0.6\textwidth]{Images/5-Way K-Shot Test Accuracy.png}
+  \caption{Accuracy on the test set with 5-way K-shot learning}
+  \label{fig:FiveWayAccuracy}
+\end{figure}
 
 \section{ Methods }
 There are two methods used in this paper to achieve few-shot learning on the speaker identification problem. The first
@@ -180,7 +191,8 @@ The data being used to identify speakers is a spectrogram of human speech. This 
 a very appealing choice. A spectrogram can be treated as an image and then the CNN can be used to find features within
 the spectrogram to identify the speakers. In order to perform few-shot learning with the prototypical network, the problem
 needs to be formed in such a way that meta-learning can be applied, as in we want to train the network to learn how to learn
-to identify speakers from a few given examples.
+to identify speakers from a few given examples. The paper "Prototypical Networks for Few-shot Learning" \cite{DBLP:journals/corr/SnellSZ17}
+outlines the theory on how to do so.
 
 The convolutional neural network itself can be thought of as an encoder. In this paper, we used a simple 6 layer 
 convlutional neural network which can be seen in table \ref{tab:CNN}. It takes as input a spectrogram and outputs a
@@ -216,19 +228,66 @@ each class $K$ can be adjusted based on the specific problem being solved.
   \label{eq:prototypical_loss}
 \end{equation}
 
+Each of the $K$ support examples for the $N$ speakers is an image of a spectrogram that consists of a 3 second utterance.
+This means that there is $3.0 \cdot K$ seconds of available speech data for each of the speakers and the prototypical
+network needs to learn how to identify each speaker with that amount of given data.
+
 \subsection{Unsupervised Pretraining with Masked Autoencoders}
+Autoencoders are a popular method for performing unsupervised pretraining. Autoencoders consist of an encoder and decoder
+network. The encoder will take in the image of spectrogram, reduce it down to a low dimensional vector, and the decoder
+will attempt to reconstruct the original spectrogram with the low dimensional vector as it's input. The idea behind this
+is that if the network is able to create a low dimensional representation of the input spectrogram which can be reconstructed
+into the original spectrogram with a decoder network, then that low dimensional network should hopefully contain useful 
+information about what that input spectrogram had consisted of. In the context of speech processing, this low dimensional 
+vector should contain information about the unique characteristics about each of the speakers voice, such as the frequency, 
+intensity, and harmonic structure, as that is what is necessary to know to reconstruct the spectrograms.The weights that 
+are found for the encoder can then be used to intialize the weights of the protonet which can lead to a higher accuracy 
+network or faster convergence. Often, reconstructing the input image is too easy of a task for an autoencoder when the 
+entirity of the input image is given. Instead, a portion of the input image, often a majority, will be masked out and it 
+is the job of the autoencoder to recreate the masked out portion. This is referred to as a masked autoencoder and is 
+outlined in "Masked Autoencoders Are Scalable Vision Leaners" \cite{MAE} and is what will be used for pretraining in this paper.
 
-
-% Describe your learning algorithms, proposed algorithm(s), or theoretical proof(s). Make
-% sure to include relevant mathematical notation. For example, you can include the loss function you are using. It is okay to use formulas from the lectures (online or in-class). For each algorithm, give a short description 
-% of how it works. Again, we are looking for your understanding of how these deep
-% learning algorithms work. Although the teaching staff probably know the algorithms, future
-% readers may not (reports will be posted on the class website). Additionally, if you are
-% using a niche or cutting-edge algorithm (anything else not covered in the class), you may want to explain your algorithm using 1/2
-% paragraphs. Note: Theory/algorithms projects may have an appendix showing extended
-% proofs (see Appendix section below).
+\begin{figure}
+  \centering
+  \includegraphics[width=1.0\textwidth]{Images/mae_mask_strips_mask_ratio_75_lr_005_batch_64.png}
+  \caption{Masked autoencoder reconstruction on a spectrogram that had 75\% of it randomly masked using vertical strips}
+  \label{fig:MAEStrips}
+\end{figure}
 
 \section{Experiments, Results, \& Discussion}
+Experiments were performed on tasks that consisted of classifying utterances from 3, 5, or 10 different speakers. For
+each of these tasks, we were provided 1, 5, or 10 speech examples, also known as support examples, to learn from. Each
+of the tasks then had 15 additional examples per speaker that were used to test how well we learned from the support 
+examples. The loss is then calculated from the query examples and the prototypes found from the support examples using the
+loss function shown in equation \ref{eq:prototypical_loss}.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{@{} *{4}{c} @{}}
+    \headercell{Number of Support\\Examples} & \multicolumn{3}{c@{}}{Number of Speakers} \\
+    \cmidrule(l){2-4}
+    & 3-Way &  5-Way & 10-Way \\ 
+    \midrule
+      1-Shot  & 98.333\% &  83.25\% &  72.333\% \\
+      5-Shot  & 99.444\% &  95.0\% &  91.417\% \\
+      10-Shot  & 100.0\% &  97.167\% &  95.0\% \\
+  \end{tabular}
+  \caption{Results from N-way K-shot learning with the Prototypical Network}
+  \label{tab:ProtonetResults}
+\end{table}
+
+\subsection{Prototypical Network From Scratch}
+The first experiments that were performed consisted of training the prototypical network from scratch (no weight initialization
+from the masked autoencoder). Every 50 iterations, the protonet is tested on a randomly selected set of tasks from the 
+test set. The amount of randomly selected test tasks was set to 4x the batch size. The batch size was set to 4 when training
+for 3-way and 5-way classification and was set to 2 for 10-way classification. A higher batch size would have been desirable 
+but it was chosen to be a value which allowed the network to be trained on the hardware that was available. The Adam optimizer
+was used with a learning rate of $0.001$ and was trained on $5,000$ tasks. This optimizer and the training hyperparameters were chosen
+through experimentation.
+
+The results of this experiment show that the protonet performed very well at the speaker identification problem. The results
+of this experiment are shown in table \ref{tab:ProtonetResults}. 
+
 % You should also give details about what (hyper)parameters you chose (e.g. why did you
 % use X learning rate for gradient descent, what was your mini-batch size and why) and how
 % you chose them. What your primary metrics are: accuracy, precision,

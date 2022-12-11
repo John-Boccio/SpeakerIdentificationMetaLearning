@@ -18,10 +18,22 @@ Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Doll{\'{a}}r, and
 \newblock Masked autoencoders are scalable vision learners.
 \newblock {\em CoRR}, abs/2111.06377, 2021.
 
+\bibitem{MAE}
+Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Dollár, and Ross
+  Girshick.
+\newblock Masked autoencoders are scalable vision learners, 2021.
+
 \bibitem{DBLP:journals/corr/NagraniCZ17}
 Arsha Nagrani, Joon~Son Chung, and Andrew Zisserman.
 \newblock Voxceleb: a large-scale speaker identification dataset.
 \newblock {\em CoRR}, abs/1706.08612, 2017.
+
+\bibitem{ParallelDistributedProcessing}
+David~E. Rumelhart, James~L. McClelland, and CORPORATE PDP Research~Group,
+  editors.
+\newblock {\em Parallel Distributed Processing: Explorations in the
+  Microstructure of Cognition, Vol. 1: Foundations}.
+\newblock MIT Press, Cambridge, MA, USA, 1986.
 
 \bibitem{DBLP:journals/corr/SnellSZ17}
 Jake Snell, Kevin Swersky, and Richard~S. Zemel.
