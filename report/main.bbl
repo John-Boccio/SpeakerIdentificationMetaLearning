@@ -1,4 +1,8 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
+
+\bibitem{SpeakerRecognitionOverview}
+Zhongxin Bai and Xiao-Lei Zhang.
+\newblock Speaker recognition based on deep learning: An overview, 2020.
 
 \bibitem{Chung18b}
 J.~S. Chung, A.~Nagrani, and A.~Zisserman.
@@ -23,10 +27,21 @@ Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Dollár, and Ross
   Girshick.
 \newblock Masked autoencoders are scalable vision learners, 2021.
 
+\bibitem{FewShotSpeakerIDChannelAttention}
+Yanxiong Li, Wucheng Wang, Hao Chen, Wenchang Cao, Wei Li, and Qianhua He.
+\newblock Few-shot speaker identification using depthwise separable
+  convolutional network with channel attention, 2022.
+
 \bibitem{DBLP:journals/corr/NagraniCZ17}
 Arsha Nagrani, Joon~Son Chung, and Andrew Zisserman.
 \newblock Voxceleb: a large-scale speaker identification dataset.
 \newblock {\em CoRR}, abs/1706.08612, 2017.
+
+\bibitem{MaskedModelingDuo}
+Daisuke Niizumi, Daiki Takeuchi, Yasunori Ohishi, Noboru Harada, and Kunio
+  Kashino.
+\newblock Masked modeling duo: Learning representations by encouraging both
+  networks to model the input, 2022.
 
 \bibitem{ParallelDistributedProcessing}
 David~E. Rumelhart, James~L. McClelland, and CORPORATE PDP Research~Group,

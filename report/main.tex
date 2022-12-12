@@ -67,22 +67,39 @@ The approach that this paper has taken towards applying meta-learning to the spe
 use of a prototypical network (protonet) \cite{DBLP:journals/corr/SnellSZ17}. The protonet generates an representation of a
 spectrogram from one speaker which, ideally, is a far distance from the representation of a spectrogram from a different
 speaker. These representations of each speaker are then used to perform classification. This paper also experiments with 
-the affects of pretraining the network using a masked autoencoder \cite{DBLP:journals/corr/abs-2111-06377}. When applied to speaker identification, 
-a masked auto encoder can be trained to extract characteristics of a speaker's voice from audio samples and use these 
-characteristics to identify the speaker. Combining meta learning with masked auto encoders offers the potential to train 
-a speaker identification model that can adapt to new speakers quickly and accurately using a small amount of training data. 
+the affects of pretraining the network using a masked autoencoder \cite{DBLP:journals/corr/abs-2111-06377}.
 \\
 \\
-Given 5 examples of 5 different speakers, a model trained from scratch is able to identify who from these 5 speakers is
-talking with 94\% accuracy. When the model is initialized with the weights learned from the masked autoencoder, the best
-accuracy achieved decreased to 91\%.
+Given 5 different speakers and 15 seconds of utterances from each of them, the model trained from scratch in this paper 
+is able to identify who from those 5 speakers is speaking with 91.7\% accuracy. If the model is given 30 seconds of utterances
+from each speaker, this accuracy increases to 95.6\%. When the model is initialized with the weights learned from the 
+masked autoencoder, the accuracy decreases, implying that MAE's do not find good representations for separating speakers.
 
 \end{abstract}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.6\textwidth]{Images/spectrogram_example.png}
+  \caption{Spectrogram captured from 3 seconds of speech}
+  \label{fig:SpectrogramExample}
+\end{figure}
 
 \section{Introduction}
 The problem that this paper is solving is the problem of speaker identification; given a set of speakers, create an
 algorithm to identify which one of those speakers is speaking in an audio clip. This problem has a wide variety of 
-applications ranging from security, automatic speech recognition, and forensic analysis. 
+applications ranging from security, automatic speech recognition, and forensic analysis. More specifically, this paper focuses
+on how to solve the speaker identification problem in a few-shot setting. Few-shot learning is an area of machine learning
+which focuses on the ability of a model to learn and generalize from a small number of examples. Many cases arise in applications
+where only a small amount of audio recordings from a speaker have been captured. In scenarios like this, having a few-shot
+capable model is necessary. This paper explores how well a simple model can perform on the speaker identification problem when only given 3, 15, or
+30 seconds of data across 3, 5, or 10 different speakers. The model used is a convolutional neural network that only
+consists of convolutional layers, batch normalization layers, max pooling layers, and ReLU activation functions.
+
+To augment few-shot learning, masked autoencoders will be used to perform unsupervised pretraining. By combining MAEs with
+few-shot learning techniques, it is possible to create a model that can accurately identify speakers based on a small 
+amount of input data. In this paper, we will explore the potential benefits and drawbacks of using few shot learning and
+masked autoencoders for speaker identification, as well as the current state of the field and possible future directions
+for research.
 
 % Explain the problem and why it is important. Discuss your motivation for pursuing this
 % problem. Give some background if necessary. Clearly state what the input and output
@@ -103,12 +120,28 @@ always classifying from your entire speaker set. Another approach is to form i-v
 is a representation of an utterance that is formed by utilizing a statisical model and speech-to-text. Characteristic 
 information about a speaker's voice is contained within these i-vectors which can then be applied to the speaker 
 identification task. This approach works well in some scenarios but still falls short as the i-vector may not be optimal
-for finding separability between speakers even though it captures the characteristics of a speakers voice.
+for finding separability between speakers even though it captures the characteristics of a speakers voice well.
 
-The shortcomings of classifying all speakers and using i-vectors can be resolved by using meta-learning. 
+The disadvantages of classifying all speakers or using i-vectors can be resolved by using meta-learning. Meta-learning
+enables us to selectively choose the amount of speakers we need to distinguish between and the amount of utterances we have
+for each. A paper which performs similar experiements to what is done here is "Few-Shot Speaker Identification Using Depthwise
+Separable Convolutional Network with Channel Attention" \cite{FewShotSpeakerIDChannelAttention} by Yanxiong Li et al. Li
+only performed few-shot learning experiments with many speakers (80) and examples per speakers (200) whereas the 
+focus of this paper is to analyze how a simple network can perform on a small number of speakers (3, 5, 10) and examples (1, 5, 10).
 
 Autoencoders were first introduced in the book "Parallel distributed processing: explorations in the microstructure of 
-cognition" \cite{ParallelDistributedProcessing}.
+cognition" \cite{ParallelDistributedProcessing}. Masked autoencoders are a derivative of autoencoders in which some of the
+input to the autoencoder is hidden and it is the job of the decoder to reconstruct the missing information. Kaiming He's paper
+"Masked Autoencoders Are Scalable Vision Learners" \cite{MAE} popularized this unsupervised pretraining algorithm for vision based tasks.
+Many ideas from He's paper will be explored in this paper in the context of unsupervised pretraining for speaker identification.
+Daisuke Nizzumi's "Masked Modeling Duo: Learning Representations by Encouraging Both Networks to Model 
+the Input" \cite{MaskedModelingDuo} explores masked autoencoders and a new unsupervised reconstruction algorithm for finding representations 
+of audio data. Their paper challenges MAE by stating that they do not always learn good representations. This may explain 
+why this paper has found that using a MAE for unsupervised pretraining does not improve the accuracy on the speaker identification problem.
+
+An excellent survey paper on modern day approaches to the problem of speaker identification is "Speaker Recognition Based on
+Deep Learning: An Overview" \cite{SpeakerRecognitionOverview} by Zhongxin Bai and Xiao-Lei Zhang. This paper can serve as
+a guide for anyone looking to experiment with different ideas related to this topic.
 
 % You should find existing papers, group them into categories based on their approaches,
 % and discuss their strengths and weaknesses, as well as how they are similar to and differ
@@ -118,13 +151,6 @@ cognition" \cite{ParallelDistributedProcessing}.
 % previous technical methods, or previous learning algorithms. Google Scholar is very useful
 % for this: https://scholar.google.com/ (you can click “cite” and it generates MLA, APA,
 % BibTeX, etc.)
-
-\begin{figure}
-  \centering
-  \includegraphics[width=0.6\textwidth]{Images/spectrogram_example.png}
-  \caption{Spectrogram captured from 3 seconds of speech}
-  \label{fig:SpectrogramExample}
-\end{figure}
 
 \section{Dataset and Features}
 The dataset used for this paper consists entirely of data from VoxCeleb \cite{DBLP:journals/corr/NagraniCZ17}. The 
@@ -176,7 +202,7 @@ speaker identification.
 \begin{figure}
   \centering
   \includegraphics[width=0.6\textwidth]{Images/5-Way K-Shot Test Accuracy.png}
-  \caption{Accuracy on the test set with 5-way K-shot learning}
+  \caption{Accuracy on random tasks from the test set during training with 5-way K-shot learning}
   \label{fig:FiveWayAccuracy}
 \end{figure}
 
@@ -245,7 +271,7 @@ are found for the encoder can then be used to intialize the weights of the proto
 network or faster convergence. Often, reconstructing the input image is too easy of a task for an autoencoder when the 
 entirity of the input image is given. Instead, a portion of the input image, often a majority, will be masked out and it 
 is the job of the autoencoder to recreate the masked out portion. This is referred to as a masked autoencoder and is 
-outlined in "Masked Autoencoders Are Scalable Vision Leaners" \cite{MAE} and is what will be used for pretraining in this paper.
+outlined in "Masked Autoencoders Are Scalable Vision Learners" \cite{MAE} and is what will be used for pretraining in this paper.
 
 \begin{figure}
   \centering
@@ -254,12 +280,22 @@ outlined in "Masked Autoencoders Are Scalable Vision Leaners" \cite{MAE} and is 
   \label{fig:MAEStrips}
 \end{figure}
 
+\begin{figure}
+  \centering
+  \includegraphics[width=1.0\textwidth]{Images/mae_mask_boxes_mask_ratio_75_lr_005_batch_64.png}
+  \caption{Masked autoencoder reconstruction on a spectrogram that had 75\% of it randomly masked using boxes}
+  \label{fig:MAEBoxes}
+\end{figure}
+
 \section{Experiments, Results, \& Discussion}
 Experiments were performed on tasks that consisted of classifying utterances from 3, 5, or 10 different speakers. For
-each of these tasks, we were provided 1, 5, or 10 speech examples, also known as support examples, to learn from. Each
+each of these tasks, 1, 5, or 10 speech examples were provided to learn from. These examples are also referred to as support set. Each
 of the tasks then had 15 additional examples per speaker that were used to test how well we learned from the support 
-examples. The loss is then calculated from the query examples and the prototypes found from the support examples using the
-loss function shown in equation \ref{eq:prototypical_loss}.
+examples. The loss is then calculated from these 15 additional examples, also known as query set, and the prototypes found from the support set.
+The loss function that is used can be seen in equation \ref{eq:prototypical_loss}. The tasks were formed by first randomly selecting $N$ celebrities
+from the list of celebrtiies in the dataset. Then for each of the celebrities, $K + 15$ speech utterances, which are in the form
+of spectrograms, are randomly chosen to create the support and query sets. These tasks are then batched and used to train
+the prototypical network whose architecture is outlined in table \ref{tab:CNN}. 
 
 \begin{table}[h]
   \centering
@@ -268,17 +304,17 @@ loss function shown in equation \ref{eq:prototypical_loss}.
     \cmidrule(l){2-4}
     & 3-Way &  5-Way & 10-Way \\ 
     \midrule
-      1-Shot  & 98.333\% &  83.25\% &  72.333\% \\
-      5-Shot  & 99.444\% &  95.0\% &  91.417\% \\
-      10-Shot  & 100.0\% &  97.167\% &  95.0\% \\
+      1-Shot  & $89.4 \pm 0.004\%$  & $76.1 \pm 0.003\%$ & $67.9 \pm 0.003\%$ \\
+      5-Shot  & $94.6 \pm 0.002\%$ & $91.7 \pm 0.002\%$ & $88.0 \pm 0.002\%$ \\
+      10-Shot  & $96.5 \pm 0.001\%$ &  $95.6 \pm 0.001\%$ & $92.2 \pm 0.001\%$ \\
   \end{tabular}
-  \caption{Results from N-way K-shot learning with the Prototypical Network}
+  \caption{Results from N-way K-shot learning with the prototypical network}
   \label{tab:ProtonetResults}
 \end{table}
 
 \subsection{Prototypical Network From Scratch}
 The first experiments that were performed consisted of training the prototypical network from scratch (no weight initialization
-from the masked autoencoder). Every 50 iterations, the protonet is tested on a randomly selected set of tasks from the 
+from the masked autoencoder). Every 50 iterations during training, the protonet is tested on a randomly selected set of tasks from the 
 test set. The amount of randomly selected test tasks was set to 4x the batch size. The batch size was set to 4 when training
 for 3-way and 5-way classification and was set to 2 for 10-way classification. A higher batch size would have been desirable 
 but it was chosen to be a value which allowed the network to be trained on the hardware that was available. The Adam optimizer
@@ -287,6 +323,22 @@ through experimentation.
 
 The results of this experiment show that the protonet performed very well at the speaker identification problem. The results
 of this experiment are shown in table \ref{tab:ProtonetResults}. 
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{@{} *{6}{c} @{}}
+    \headercell{Mask\\Method} & \multicolumn{5}{c@{}}{Mask Ratio} \\
+    \cmidrule(l){2-6}
+    & $0.55$ & $0.65$ & $0.75$ & $0.85$ & $0.95$ \\ 
+    \midrule
+      Strips & $87.8 \pm 0.003\%$  & $88.3 \pm 0.003\%$ & $88.6 \pm 0.003\%$ & $89.7 \pm 0.002\%$ & $88.7 \pm 0.003\%$ \\
+      Boxes & $89.4 \pm 0.003\%$ & $88.3 \pm 0.002\%$ & $88.5 \pm 0.003\%$ & $89.7 \pm 0.002\%$ & $88.2 \pm 0.003\%$ \\
+  \end{tabular}
+  \caption{Results from 5-way 5-shot learning with the prototypical network initialized with weights from the MAE}
+  \label{tab:ProtonetMAEResults}
+\end{table}
+
+\subsection{Prototypical Network Initialized from Masked Autoencoder}
 
 % You should also give details about what (hyper)parameters you chose (e.g. why did you
 % use X learning rate for gradient descent, what was your mini-batch size and why) and how
@@ -343,6 +395,7 @@ project has been made public and can be found at
   \label{tab:CNN}
 \end{table}
 
+\newpage
 \bibliographystyle{plain}
 \bibliography{refs}
 

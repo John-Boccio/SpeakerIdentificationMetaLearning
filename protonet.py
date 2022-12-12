@@ -169,9 +169,8 @@ class ProtoNet:
             dataloader_test (DataLoader): loader for test tasks
         """
         accuracies = []
-        for i in range(self._num_test_tasks):
-            task = dataloader_test[i]
-            accuracies.append(self._step(task)[2])
+        for task_batch in dataloader_test:
+            accuracies.append(self._step(task_batch)[2])
         mean = np.mean(accuracies)
         std = np.std(accuracies)
         mean_95_confidence_interval = 1.96 * std / np.sqrt(self._num_test_tasks)
