@@ -1,4 +1,4 @@
-# Speaker Identification Using Meta-Learning (Stanford CS330 Final Project by John Boccio)
+# Few-Shot Speaker Identification Using Masked Autoencoders and Meta-Learning (Stanford CS330 Final Project by John Boccio)
 This project aims to take a meta-learning approach to solving the speaker identification problem. The speaker 
 identification problem consists of being to identify who is talking within a given audio clip from a given set of speakers.
 A few examples of audio clips of where this user is talking is provided beforehand and used to train the model in a 
