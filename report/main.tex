@@ -47,10 +47,9 @@
 \maketitle
 
 \begin{abstract}
-Speaker identification refers to the task of identifying which speaker is talking from a given set of 
-speakers. With the rise of deep learning and data driven approaches to audio processing problems, new approaches can be
-taken on this problem which traditionally was performed by trying to find separability between
-speakers using hand-engineered feature extractors. The speaker identification problem is a very appropriate problem for meta-learning. 
+Speaker identification refers to the task of identifying who is talking from a given set of speakers. Recent deep learning 
+and meta-learning advancements have unlocked new approaches to this problem which are able to do so with greater than $90\%$ 
+accuracy. The speaker identification problem is a very appropriate problem for meta-learning. 
 Meta learning is a machine learning technique in which a model is trained to learn how to learn, allowing it to 
 adapt to new tasks quickly using relatively little data. By applying meta-learning to the speaker identification problem, 
 a model can be trained to learn how to recognize speakers from a small amount of audio samples from each of the speakers. 
@@ -60,7 +59,7 @@ This could be useful in scenarios where the set of possible speakers is not know
 All of the data that was used for this paper comes from the VoxCeleb dataset \cite{DBLP:journals/corr/NagraniCZ17}. VoxCeleb
 provides labeled audio data spoken from over 1,000 celebrities. These audio files are then cut into 3 second segments and 
 converted into a spectrogram which will then be fed into a convolutional neural network. The final
-result is a dataset with over 200,000 spectrograms, each labeled with an id that represents the celebrity that is talking.
+result is a dataset with over 200,000 spectrograms, each labeled with an identifier that represents the celebrity that is talking.
 \\
 \\
 The approach that this paper has taken towards applying meta-learning to the speaker identification problem is through the 
@@ -70,7 +69,7 @@ speaker. These representations of each speaker are then used to perform classifi
 the affects of pretraining the network using a masked autoencoder \cite{DBLP:journals/corr/abs-2111-06377}.
 \\
 \\
-Given 5 different speakers and 15 seconds of utterances from each of them, the model trained from scratch in this paper 
+Given 5 different speakers and 15 seconds worth of utterances from each of them, the model trained from scratch in this paper 
 is able to identify who from those 5 speakers is speaking with 91.7\% accuracy. If the model is given 30 seconds of utterances
 from each speaker, this accuracy increases to 95.6\%. When the model is initialized with the weights learned from the 
 masked autoencoder, the accuracy decreases, implying that MAE's do not find good representations for separating speakers.
@@ -89,14 +88,14 @@ The problem that this paper is solving is the problem of speaker identification;
 algorithm to identify which one of those speakers is speaking in an audio clip. This problem has a wide variety of 
 applications ranging from security, automatic speech recognition, and forensic analysis. More specifically, this paper focuses
 on how to solve the speaker identification problem in a few-shot setting. Few-shot learning is an area of machine learning
-which focuses on the ability of a model to learn and generalize from a small number of examples. Many cases arise in applications
+which focuses on the ability of a model to learn and generalize from a small number of examples. Many cases arise
 where only a small amount of audio recordings from a speaker have been captured. In scenarios like this, having a few-shot
-capable model is necessary. This paper explores how well a simple model can perform on the speaker identification problem when only given 3, 15, or
+capable model is necessary. This paper explores how well a simple model can perform on the speaker identification problem when given 3, 15, or
 30 seconds of data across 3, 5, or 10 different speakers. The model used is a convolutional neural network that only
-consists of convolutional layers, batch normalization layers, max pooling layers, and ReLU activation functions. The input
-to this model will be spectrograms that were created from 3 seconds of speech. These spectrograms can be thought of as images
-which have a label that represents an identifier for that speaker. The task of the network is to be able to identify which
-speaker the spectrogram came from.
+consists of convolutional layers, batch normalization layers, max pooling layers, and ReLU activation functions and has a
+total of 269,376 parameters. The input to this model will be spectrograms that were created from 3 seconds 
+of speech. These spectrograms can be thought of as images which have a label that represents an identifier for that speaker. 
+The task of the network is to be able to identify which speaker the spectrogram came from.
 
 To augment few-shot learning, masked autoencoders will be used to perform unsupervised pretraining. By combining MAEs with
 few-shot learning techniques, it is possible to create a model that can accurately identify speakers based on a small 
@@ -117,7 +116,7 @@ for finding separability between speakers even though it captures the characteri
 
 The disadvantages of classifying all speakers or using i-vectors can be resolved by using meta-learning. Meta-learning
 enables us to selectively choose the amount of speakers we need to distinguish between and the amount of utterances we have
-for each. Papers which performs similar experiements to what is done here are "Few-Shot Speaker Identification Using Depthwise
+for each. Papers which perform similar experiements to what is done in this paper are "Few-Shot Speaker Identification Using Depthwise
 Separable Convolutional Network with Channel Attention" \cite{FewShotSpeakerIDChannelAttention} by Yanxiong Li et al. and
 "Few Shot Speaker Recognition using Deep Neural Networks" by Prashant Anand et al. \cite{FewShotSpeakerRecognition}. This paper
 differs from their experiments by looking at unsupervised pretraining using a masked autoencoder and utilizing a much smaller
@@ -245,13 +244,14 @@ will attempt to reconstruct the original spectrogram with the low dimensional ve
 is that if the network is able to create a low dimensional representation of the input spectrogram which can be reconstructed
 into the original spectrogram with a decoder network, then that low dimensional network should hopefully contain useful 
 information about what that input spectrogram had consisted of. In the context of speech processing, this low dimensional 
-vector should contain information about the unique characteristics about each of the speakers voice, such as the frequency, 
-intensity, and harmonic structure, as that is what is necessary to know to reconstruct the spectrograms.The weights that 
+vector should contain information about the unique characteristics of the speakers voice, such as the frequency, 
+intensity, and harmonic structure, as that is what is necessary to know to reconstruct the spectrograms. The weights that 
 are found for the encoder can then be used to intialize the weights of the protonet which can lead to a higher accuracy 
 network or faster convergence. Often, reconstructing the input image is too easy of a task for an autoencoder when the 
 entirity of the input image is given. Instead, a portion of the input image, often a majority, will be masked out and it 
 is the job of the autoencoder to recreate the masked out portion. This is referred to as a masked autoencoder and is 
-outlined in "Masked Autoencoders Are Scalable Vision Learners" \cite{MAE} and is what will be used for pretraining in this paper.
+outlined in "Masked Autoencoders Are Scalable Vision Learners" \cite{MAE}. This is what will be used for pretraining the
+network in this paper.
 
 \begin{figure}
   \centering
@@ -310,7 +310,7 @@ on 3-way and 10-way. The results are as expected, the more speakers there are to
 Having more speakers increases the probability that some of them may have similar voice representations and thus leads to
 the lower accuracy that is seen. Another interesting and expected result is how the $95\%$ confidence interval on the test
 accuracy decreases as we increase the number of support examples. This implies that increasing the number of support examples
-does not only increase the accuracy but also increases how consistent the network is at being to classify different speakers.
+not only increases the accuracy but also increases how consistent the network is at recognizing different speakers.
 
 \begin{table}[h]
   \centering
@@ -345,13 +345,13 @@ of speech. The boxes method masks out rectangles of size 10 rows by 30 columns o
 a portion of the frequency band that is masked out and the 30 columns masks out 300 milliseconds of speech. This method
 should allow the MAE to learn how to create a representation which contains information on both the various frequency
 bands of a speaker as well as how their voice changes throughout time. For both of these methods, the masks were randomly
-placed on top of the input image. The portion of the input spectrogram that was masked was a hyperparameter referred to
+placed on top of the input spectrogram. The portion of the input spectrogram that was masked was a hyperparameter referred to
 as the mask ratio. This determines the amount of boxes and strips placed on the input image. The mask ratios that were 
 tried out were 0.55, 0.65, 0.75, 0.85, and 0.95. Some examples of the masked spectrograms and their reconstruction by
 the masked autoencoder are shown in figures \ref{fig:MAEStrips} and \ref{fig:MAEBoxes}.
 
 The training loss when applying the randomly placed strips can be seen in figure \ref{fig:MAELoss}. The loss quickly decreases
-for the first 100 or so iterations and then slowly decreases until the end of training. After every 250 iterations, the MAE
+for the first 100 or so iterations and then slowly decreases until the end of training. Every 250 iterations, the MAE
 was tested with 10 random batches from the test set. After training was completed, the best model was selected by choosing
 the one which had the lowest loss on the randomly sampled examples from the test set. Once each of the models were chosen,
 the weights of the encoder were used as the initial weights of the protonet. Then, that protonet was trained to perform 
@@ -387,7 +387,7 @@ The field of speaker identification has been revamped by the advancement of deep
 These methods have shown up to $~20\%$ improvement in accuracy over traditional methods such as using I-vectors and probabilistic 
 linear discriminate analysis \cite{ivectorPLDA}. Even the simple CNN defined in table \ref{tab:CNN} was able to achieve
 $96.5\%$, $95.6\%$, and $92.2\%$ accuracy on 3-way, 5-way, and 10-way classification with just 30 seconds of audio data
-for each user. Utilizing masked autoencoders for unsupervised pretraining showed to not provide any advantages. This is either
+from each user. Utilizing masked autoencoders for unsupervised pretraining showed to not provide any advantages. This is either
 due to the MAE not learning a representation of the input which is useful for speaker identification or VoxCeleb1 providing us
 enough data to the point where pretraining is not necessary. Given more computational resources, it would be great to see 
 how well the network used in this paper could perform on 20-way and 50-way classification. An area which seems to continually
