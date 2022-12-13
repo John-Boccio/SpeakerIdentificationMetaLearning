@@ -1,5 +1,9 @@
 \begin{thebibliography}{10}
 
+\bibitem{FewShotSpeakerRecognition}
+Prashant Anand, Ajeet~Kumar Singh, Siddharth Srivastava, and Brejesh Lall.
+\newblock Few shot speaker recognition using deep neural networks, 2019.
+
 \bibitem{SpeakerRecognitionOverview}
 Zhongxin Bai and Xiao-Lei Zhang.
 \newblock Speaker recognition based on deep learning: An overview, 2020.
@@ -26,6 +30,12 @@ Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Doll{\'{a}}r, and
 Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Dollár, and Ross
   Girshick.
 \newblock Masked autoencoders are scalable vision learners, 2021.
+
+\bibitem{ivectorPLDA}
+Kong~Aik Lee, Anthony Larcher, Chang You, Bin Ma, and Haizhou Li.
+\newblock Multi-session plda scoring of i-vector for partially open-set speaker
+  detection.
+\newblock pages 3651--3655, 08 2013.
 
 \bibitem{FewShotSpeakerIDChannelAttention}
 Yanxiong Li, Wucheng Wang, Hao Chen, Wenchang Cao, Wei Li, and Qianhua He.
